@@ -1,11 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { TravelFormData, ItineraryResponse } from "../types";
 
-// REMOVED top-level initialization here to prevent runtime crash
-
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
-  // Initialize INSIDE the function
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // 1. Explicit Check for API Key
+  const apiKey = process.env.API_KEY;
+  if (!apiKey || apiKey.includes("undefined")) {
+    throw new Error("API Key is missing. Please check Vercel Environment Variables.");
+  }
+
+  // 2. Initialize Client
+  const ai = new GoogleGenAI({ apiKey: apiKey });
   const model = "gemini-2.5-flash";
 
   const prompt = `
@@ -106,6 +110,10 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
 
   } catch (error) {
     console.error("Gemini Generation Error:", error);
+    // Throwing a string message to be displayed in the UI
+    if (error instanceof Error) {
+        throw error;
+    }
     throw new Error("Unable to generate itinerary at this moment.");
   }
 };
