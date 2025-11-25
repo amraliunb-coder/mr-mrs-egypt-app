@@ -1,10 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { TravelFormData, ItineraryResponse } from "../types";
 
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// REMOVED top-level initialization here to prevent runtime crash
 
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
+  // Initialize INSIDE the function
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = "gemini-2.5-flash";
 
   const prompt = `
