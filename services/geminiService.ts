@@ -3,12 +3,14 @@ import { TravelFormData, ItineraryResponse } from "../types";
 
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
   // 1. Explicit Check for API Key
+  // This ensures we catch Vercel configuration errors immediately
   const apiKey = process.env.API_KEY;
   if (!apiKey || apiKey.includes("undefined")) {
     throw new Error("API Key is missing. Please check Vercel Environment Variables.");
   }
 
   // 2. Initialize Client
+  // We initialize here to ensure the key is available
   const ai = new GoogleGenAI({ apiKey: apiKey });
   const model = "gemini-2.5-flash";
 
@@ -110,7 +112,7 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
 
   } catch (error) {
     console.error("Gemini Generation Error:", error);
-    // Throwing a string message to be displayed in the UI
+    // Re-throw the specific error (like API Key missing) so the UI shows it
     if (error instanceof Error) {
         throw error;
     }
