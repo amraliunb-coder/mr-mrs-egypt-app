@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mr & Mrs Egypt | Bespoke Luxury Travel</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Inter:wght@300;400;500;600&family=Pinyon+Script&display=swap" rel="stylesheet">
+    
+    <!-- html2pdf.js for client-side PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <style>
+      /* Custom Font Families */
+      .font-sans { font-family: 'Inter', sans-serif; }
+      .font-serif { font-family: 'Cinzel', serif; }
+      .font-script { font-family: 'Pinyon Script', cursive; }
+      
+      /* Smooth Scroll */
+      html { scroll-behavior: smooth; }
+      
+      /* Glassmorphism Utilities */
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(201, 167, 107, 0.2);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+      }
+      
+      /* Gold Shimmer Animation */
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      
+      .gold-shimmer {
+        background: linear-gradient(90deg, transparent, rgba(201, 167, 107, 0.1), transparent);
+        background-size: 200% 100%;
+        animation: shimmer 2s infinite;
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #222428; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #C9A76B; 
+        border-radius: 4px;
+      }
+
+      /* PRINT STYLES FOR PDF GENERATION */
+      @media print {
+        @page { margin: 0; size: auto; }
+        body { 
+          background-color: white !important; 
+          color: #222428 !important; 
+          -webkit-print-color-adjust: exact !important; 
+          print-color-adjust: exact !important;
+        }
+        #root { width: 100%; }
+        
+        /* Hide UI elements */
+        .no-print, header, .fixed, .absolute { display: none !important; }
+        
+        /* Ensure content flows properly */
+        .print-container {
+          position: relative !important;
+          inset: auto !important;
+          transform: none !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          background: white !important;
+          padding: 0px !important; /* Managed by html2pdf or page */
+          box-shadow: none !important;
+          margin: 0 !important;
+          overflow: visible !important;
+        }
+
+        .print-text-dark { color: #1a1a1a !important; }
+        .print-border { border-color: #C9A76B !important; }
+        
+        /* Enhanced Page Breaking */
+        .page-break { 
+          page-break-before: always !important; 
+          break-before: page !important;
+          display: block;
+          height: 1px;
+          width: 100%;
+        }
+        
+        .avoid-break { 
+          page-break-inside: avoid !important; 
+          break-inside: avoid !important;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-[#222428] text-white overflow-x-hidden antialiased">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
