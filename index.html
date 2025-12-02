@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mr & Mrs Egypt | Bespoke Luxury Travel</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Inter:wght@300;400;500;600&family=Pinyon+Script&display=swap" rel="stylesheet">
+    
+    <!-- html2pdf.js for client-side PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <style>
+      /* Custom Font Families */
+      .font-sans { font-family: 'Inter', sans-serif; }
+      .font-serif { font-family: 'Cinzel', serif; }
+      .font-script { font-family: 'Pinyon Script', cursive; }
+      
+      /* Smooth Scroll */
+      html { scroll-behavior: smooth; }
+      
+      /* Glassmorphism Utilities - UPDATED FOR LIGHT MODE */
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.7); /* White Frost */
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(197, 176, 151, 0.3); /* Sand Border */
+        box-shadow: 0 10px 40px rgba(44, 62, 80, 0.05); /* Soft Shadow */
+      }
+      
+      /* ANIMATIONS */
+      
+      /* Shimmer Text Effect */
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      
+      .animate-shimmer {
+        animation: shimmer 3s infinite linear;
+      }
+
+      .gold-shimmer {
+        background: linear-gradient(90deg, transparent, rgba(197, 176, 151, 0.3), transparent);
+        background-size: 200% 100%;
+        animation: shimmer 2s infinite;
+      }
+      
+      /* Float Animation (Gold Dust) */
+      @keyframes float {
+        0% { transform: translateY(0) translateX(0); opacity: 0; }
+        50% { opacity: 0.5; }
+        100% { transform: translateY(-100px) translateX(50px); opacity: 0; }
+      }
+      
+      .animate-float {
+        animation-name: float;
+        animation-timing-function: ease-in-out;
+        animation-iteration-count: infinite;
+      }
+      
+      /* Fade In Up */
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .animate-fadeInUp {
+        animation: fadeInUp 0.5s ease-out forwards;
+      }
+
+      /* Scrollbar - UPDATED FOR LIGHT MODE */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #F9F9F7; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #C5B097; 
+        border-radius: 4px;
+      }
+
+      /* FIX: Ensure Date Picker Icon is visible on light background */
+      input[type="date"] {
+        color-scheme: light; /* Forces icon to be black */
+      }
+      input[type="date"]::-webkit-calendar-picker-indicator {
+        opacity: 0.8;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      input[type="date"]::-webkit-calendar-picker-indicator:hover {
+        opacity: 1;
+      }
+
+      /* PRINT STYLES FOR PDF GENERATION */
+      @media print {
+        @page { margin: 0; size: auto; }
+        body { 
+          background-color: white !important; 
+          color: #2C3E50 !important; 
+          -webkit-print-color-adjust: exact !important; 
+          print-color-adjust: exact !important;
+        }
+        #root { width: 100%; }
+        
+        /* Hide UI elements */
+        .no-print, header, .fixed, .absolute { display: none !important; }
+        
+        /* Ensure content flows properly */
+        .print-container {
+          position: relative !important;
+          inset: auto !important;
+          transform: none !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          background: white !important;
+          padding: 0px !important; /* Managed by html2pdf or page */
+          box-shadow: none !important;
+          margin: 0 !important;
+          overflow: visible !important;
+        }
+
+        .print-text-dark { color: #2C3E50 !important; }
+        .print-border { border-color: #C5B097 !important; }
+        
+        /* Enhanced Page Breaking */
+        .page-break { 
+          page-break-before: always !important; 
+          break-before: page !important;
+          display: block;
+          height: 1px;
+          width: 100%;
+        }
+        
+        .avoid-break { 
+          page-break-inside: avoid !important; 
+          break-inside: avoid !important;
+        }
+      }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-[#F9F9F7] text-[#2C3E50] overflow-x-hidden antialiased">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
