@@ -1,28 +1,72 @@
-import { GoogleGenAI, Type } from "@google/genai";
+// geminiService.ts
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { TravelFormData, ItineraryResponse } from "../types";
 
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
   
-  // --- VITE FIX START ---
-  // Vite uses import.meta.env, NOT process.env
+  // 1. Get Key
   const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-
-  // Debugging: Check console (F12) to see if key is loaded
-  console.log("DEBUG: API Key Check:", { 
-    exists: !!apiKey, 
-    firstChar: apiKey ? apiKey[0] : 'N/A' 
-  });
 
   if (!apiKey || apiKey.includes("undefined")) {
     throw new Error("API Key is missing. Please check Vercel Env Vars: VITE_GOOGLE_API_KEY");
   }
-  // --- VITE FIX END ---
 
-  // 2. Initialize Client
-  const ai = new GoogleGenAI({ apiKey: apiKey });
+  // 2. Initialize Client (Standard Web SDK)
+  const genAI = new GoogleGenerativeAI(apiKey);
   
-  // Use a stable model version
-  const model = "gemini-1.5-flash"; 
+  // 3. Configure Model
+  // This SDK handles the API versions automatically for you
+  const model = genAI.getGenerativeModel({
+    model: "gemini-1.5-flash", 
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: SchemaType.OBJECT,
+        properties: {
+          tripTitle: { type: SchemaType.STRING, description: "A creative title for the trip." },
+          greeting: { type: SchemaType.STRING, description: "A personalized opening paragraph" },
+          summary: { type: SchemaType.STRING, description: "A 2-3 sentence overview" },
+          totalEstimatedCost: { type: SchemaType.STRING, description: "Estimated cost range" },
+          priceIncludes: { 
+            type: SchemaType.ARRAY, 
+            items: { type: SchemaType.STRING },
+            description: "List of inclusions"
+          },
+          highlights: { 
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING }
+          },
+          days: {
+            type: SchemaType.ARRAY,
+            items: {
+              type: SchemaType.OBJECT,
+              properties: {
+                day: { type: SchemaType.INTEGER },
+                title: { type: SchemaType.STRING },
+                activities: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+                notes: { type: SchemaType.STRING }
+              },
+              required: ["day", "title", "activities"]
+            }
+          },
+          accommodationOptions: {
+            type: SchemaType.ARRAY,
+            items: {
+              type: SchemaType.OBJECT,
+              properties: {
+                name: { type: SchemaType.STRING },
+                type: { type: SchemaType.STRING },
+                description: { type: SchemaType.STRING }
+              },
+              required: ["name", "type", "description"]
+            }
+          },
+          travelTips: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+        },
+        required: ["tripTitle", "greeting", "summary", "totalEstimatedCost", "priceIncludes", "highlights", "days", "accommodationOptions", "travelTips"]
+      }
+    }
+  });
 
   const prompt = `
     You are a senior luxury travel consultant for "Mr & Mrs Egypt". 
@@ -39,9 +83,9 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
     - Special Notes: ${formData.additionalNotes || "None"}
 
     Requirements:
-    1. Tone: Sophisticated, professional, adapted to trip type (${formData.tripType}).
+    1. Tone: Sophisticated, professional, adapted to trip type.
     2. Structure: Day-by-day breakdown with specific sites.
-    3. Hotels: Suggest 2-3 specific options matching budget.
+    3. Hotels: Suggest 2-3 specific options.
     4. Grand Egyptian Museum (GEM): Must be included as fully open.
     5. Inclusions: Private Transport, Guide, Entry Tickets. Domestic Flights (Cairo-Luxor/Aswan ONLY).
     6. Exclusions: International flights, tips.
@@ -50,54 +94,9 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            tripTitle: { type: Type.STRING },
-            greeting: { type: Type.STRING },
-            summary: { type: Type.STRING },
-            totalEstimatedCost: { type: Type.STRING },
-            priceIncludes: { type: Type.ARRAY, items: { type: Type.STRING } },
-            highlights: { type: Type.ARRAY, items: { type: Type.STRING } },
-            days: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  day: { type: Type.INTEGER },
-                  title: { type: Type.STRING },
-                  activities: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  notes: { type: Type.STRING }
-                },
-                required: ["day", "title", "activities"]
-              }
-            },
-            accommodationOptions: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  name: { type: Type.STRING },
-                  type: { type: Type.STRING },
-                  description: { type: Type.STRING }
-                },
-                required: ["name", "type", "description"]
-              }
-            },
-            travelTips: { type: Type.ARRAY, items: { type: Type.STRING } }
-          },
-          required: ["tripTitle", "greeting", "summary", "totalEstimatedCost", "priceIncludes", "highlights", "days", "accommodationOptions", "travelTips"]
-        }
-      }
-    });
-
-    // Handle response text based on SDK version
-    const text = typeof response.text === 'function' ? response.text() : response.text;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
     
     if (!text) throw new Error("No response from AI");
     
@@ -105,7 +104,6 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
 
   } catch (error) {
     console.error("Gemini Generation Error:", error);
-    if (error instanceof Error) throw error;
-    throw new Error("Unable to generate itinerary.");
+    throw error;
   }
 };
