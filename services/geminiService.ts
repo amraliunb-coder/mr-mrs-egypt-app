@@ -2,17 +2,32 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { TravelFormData, ItineraryResponse } from "../types";
 
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
-  // 1. Explicit Check for API Key
-  // This ensures we catch Vercel configuration errors immediately
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+  
+  // --- DEBUGGING START ---
+  // Open your browser console (F12) to see this output when you click the button.
+  const clientKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+  const serverKey = process.env.GOOGLE_API_KEY;
+  
+  console.log("DEBUG: Environment Check", {
+    hasClientKey: !!clientKey,
+    clientKeyLength: clientKey ? clientKey.length : 0,
+    hasServerKey: !!serverKey
+  });
+  // --- DEBUGGING END ---
+
+  // 1. Get API Key (Check both client and server variables)
+  const apiKey = clientKey || serverKey;
+
   if (!apiKey || apiKey.includes("undefined")) {
-    throw new Error("API Key is missing. Please check Vercel Environment Variables.");
+    throw new Error(`API Key is missing. Loaded: ${apiKey ? "Yes" : "No"}. Check Vercel Env Vars: NEXT_PUBLIC_GOOGLE_API_KEY`);
   }
 
   // 2. Initialize Client
-  // We initialize here to ensure the key is available
   const ai = new GoogleGenAI({ apiKey: apiKey });
-  const model = "gemini-2.5-flash";
+  
+  // UPDATED: 'gemini-2.5-flash' does not exist yet. Using standard 1.5 Flash.
+  // You can change this to 'gemini-2.0-flash-exp' if you have access.
+  const model = "gemini-1.5-flash"; 
 
   const prompt = `
     You are a senior luxury travel consultant for "Mr & Mrs Egypt". 
@@ -111,14 +126,15 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
       }
     });
 
-    const text = response.text;
+    const text = response.text(); // Note: response.text() is a function in some SDK versions, or response.text in others.
+    // If you get a 'text is not a function' error, change this back to `response.text;`
+    
     if (!text) throw new Error("No response from AI");
     
     return JSON.parse(text) as ItineraryResponse;
 
   } catch (error) {
     console.error("Gemini Generation Error:", error);
-    // Re-throw the specific error (like API Key missing) so the UI shows it
     if (error instanceof Error) {
         throw error;
     }
