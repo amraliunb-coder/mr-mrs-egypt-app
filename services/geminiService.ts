@@ -4,7 +4,7 @@ import { TravelFormData, ItineraryResponse } from "../types";
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
   // 1. Explicit Check for API Key
   // This ensures we catch Vercel configuration errors immediately
-  const apiKey = process.env.API_KEY;
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
   if (!apiKey || apiKey.includes("undefined")) {
     throw new Error("API Key is missing. Please check Vercel Environment Variables.");
   }
