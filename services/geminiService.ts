@@ -4,19 +4,18 @@ import { TravelFormData, ItineraryResponse } from "../types";
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
   
   // 1. Get API Key from Vercel Environment Variables
-  // (We are removing the hardcoded text now)
   const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
 
-  if (!apiKey || apiKey.includes("undefined") || apiKey.includes("PASTE_YOUR")) {
-    throw new Error("API Key is missing or invalid. Check Vercel Env Vars.");
+  if (!apiKey || apiKey.includes("undefined") || apiKey.includes("PASTE_YOUR") || apiKey === "PLACEHOLDER_API_KEY") {
+    throw new Error("API Key is missing or invalid. Please set VITE_GOOGLE_API_KEY in Vercel environment variables.");
   }
 
   // 2. Initialize Client
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // 3. Configure Model (Using the specific version to avoid 404s)
+  // 3. Configure Model - FIXED: Use correct model identifier
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash", 
+    model: "gemini-1.5-flash-latest", // Changed from "gemini-1.5-flash"
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -99,8 +98,14 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
     
     return JSON.parse(text) as ItineraryResponse;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Generation Error:", error);
+    
+    // Enhanced error messaging
+    if (error?.message?.includes("404")) {
+      throw new Error("Model not found. The Gemini API model configuration may have changed. Please check the latest API documentation.");
+    }
+    
     throw error;
   }
 };
