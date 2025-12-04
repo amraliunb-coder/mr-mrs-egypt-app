@@ -17,7 +17,7 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
   // 3. Configure Model
   // This SDK handles the API versions automatically for you
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-pro", 
+  model: "gemini-1.5-pro-001",
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: {
