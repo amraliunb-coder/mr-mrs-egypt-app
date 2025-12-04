@@ -16,7 +16,7 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
   
   // 3. Configure Model (Using the specific version to avoid 404s)
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash-001", 
+    model: "gemini-1.5-flash", 
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: {
