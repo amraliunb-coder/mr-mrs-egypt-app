@@ -250,9 +250,57 @@ REQUIREMENTS:
    - For Luxury/Ultra-Luxury budgets OR for Couple/Honeymoon/Small Group trips, also suggest Dahabiya cruises as a more exclusive boutique option.
    - Dahabiya notes: Private sailboats with 8-12 cabins, more intimate and flexible, sail-powered with slower pace, ideal for honeymoons and small groups.
    
+   **NILE CRUISE SELECTION MATRIX** - Use this to match the RIGHT cruise to the traveler:
+   
+   | Cruise Name | Type | Best For | Pros | Cons | Budget Level | Best Months |
+   |-------------|------|----------|------|------|--------------|-------------|
+   | **Oberoi Zahra** | Luxury Cruise | Honeymooners, Luxury Families (40+), Solo Travelers seeking impeccable service | Impeccable service, spacious suites, serene design, high-quality refined menu | Highest price, fixed itinerary | Ultra-Luxury | Oct-Nov, Mar-Apr |
+   | **Mövenpick Royal Lily** | Luxury Cruise | Honeymooners (ultimate romance), Luxury Families, Foodies, Solo Travelers (social) | Renovated & refined, best-in-class food, excellent bars, social atmosphere, easy to meet people | Trendy vibe may not suit everyone | Luxury | Oct-Apr |
+   | **Sonesta St. George** | Standard Cruise | Families needing space, Budget-conscious luxury seekers | Large pool, family suites, spacious, reliable standard | Not boutique feel, can be crowded, impersonal service | Mid-Range to Luxury | Dec-Feb |
+   | **MS Mayfair** | Standard Cruise | Design lovers, Solo travelers seeking comfort, Value seekers | Stunning design, good value, comfortable setting to connect | Smallest cabins, fewest amenities, not the most intimate | Mid-Range | Any month |
+   | **Dahabiya** (Boutique) | Boutique Sailboat | Honeymooners (ultimate privacy), Adventurous souls, Small groups (2-8 people), Design lovers | Ultimate privacy, flexible itinerary, authentic experience, includes all meals + alcohol + excursions, stunning design, excellent food | Higher price than standard cruises, slower pace | Luxury to Ultra-Luxury | Oct-Apr |
+   
+   **DECISION LOGIC - Select cruise based on:**
+   
+   1. **HONEYMOONERS / COUPLES**:
+      - Ultra-Luxury Budget: **Dahabiya** (ultimate privacy & uniqueness) OR **Oberoi Zahra** (unmatched service)
+      - Luxury Budget: **Mövenpick Royal Lily** (ultimate romance) OR **Dahabiya**
+      - Mid-Range Budget: **MS Mayfair** (classic, reliable romance)
+   
+   2. **FAMILIES**:
+      - With Children: **Sonesta St. George** (space & family suites, large pool)
+      - Luxury Families (teens/older kids): **Mövenpick Royal Lily** (better food & refined) OR **Oberoi Zahra** (impeccable service)
+   
+   3. **SOLO TRAVELERS**:
+      - 40+ seeking luxury: **Oberoi Zahra** (safe, impeccable service)
+      - Social travelers: **Mövenpick Royal Lily** (easy to meet people) OR **MS Mayfair** (comfortable setting)
+   
+   4. **BY TRAVEL STYLE**:
+      - **Design Lovers**: **MS Mayfair** (stunning design) OR **Dahabiya** (boutique aesthetic)
+      - **Foodies**: **Mövenpick Royal Lily** (best-in-class food) OR **Oberoi Zahra** (refined cuisine)
+      - **Adventurous/Unique Experience**: **Dahabiya** (the only choice for authentic, flexible journey)
+      - **Relaxation/Privacy**: **Dahabiya** OR **Oberoi Zahra**
+   
+   5. **INCLUSIONS NOTE**:
+      - Standard Cruises (Oberoi, Mövenpick, Sonesta, Mayfair): Include most meals & basic drinks. Premium alcohol and some excursions may be upsold.
+      - Dahabiya: ALL-INCLUSIVE (all meals, all alcohol, all excursions included - nothing upsold)
+   
+   6. **RECOMMENDED LENGTH**:
+      - Oberoi Zahra: 4-7 nights
+      - Mövenpick Royal Lily: 4-5 nights
+      - Sonesta St. George: 3-4 nights
+      - MS Mayfair: 4-5 nights
+      - Dahabiya: 5-7 nights (slower pace, more immersive)
+   
+   **When recommending cruises in accommodationOptions:**
+   - Always suggest 2-3 cruise options that match the traveler profile
+   - Mention the key selling point for each (e.g., "Oberoi Zahra - renowned for impeccable service and spacious suites")
+   - For Dahabiyas, emphasize the all-inclusive nature and flexibility
+   - Note the fixed departure schedules for standard cruises
+   
    Cruise examples by budget:
-   - Mid-Range Cruises: M/S Mayfair, M/S Royal Esadora, M/S Princess Sarah
-   - Luxury Cruises: M/S Farah, Oberoi Philae, Sanctuary Sun Boat IV
+   - Mid-Range Cruises: MS Mayfair, Sonesta St. George
+   - Luxury Cruises: Mövenpick Royal Lily, Oberoi Philae, Sanctuary Sun Boat IV
    - Ultra-Luxury Cruises: Oberoi Zahra, Sanctuary Sun Boat III
    - Dahabiya (Luxury/Ultra-Luxury): Dahabiya Amoura, Nebyt Dahabiya, Sanctuary Zein Nile Chateau
    
