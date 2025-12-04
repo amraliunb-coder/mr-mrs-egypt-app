@@ -236,24 +236,24 @@ export const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ data, formDa
           </div>
         </div>
 
-        {/* WRAPPER 4: NOTES & FOOTER */}
+        {/* WRAPPER 4: NOTES & FOOTER (Light Mode) */}
         <div 
-          className="bg-[#2C3E50] text-white p-8 md:p-12 rounded-b-lg print:bg-white print:text-black print:border-t print:border-[#C5B097] print:rounded-none"
+          className="bg-[#F9F9F7] text-[#2C3E50] p-8 md:p-12 rounded-b-lg border-t border-[#C5B097]/30 print:bg-white print:text-black print:border-[#C5B097] print:rounded-none"
           style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
         >
           <h3 className="font-serif text-lg text-[#C5B097] mb-4">Traveler Notes</h3>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             {(data.travelTips || []).map((tip, idx) => (
-              <li key={idx} className="text-sm text-gray-300 print:text-gray-600 flex gap-2 items-start" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                 <span className="mt-[2px]">•</span> 
+              <li key={idx} className="text-sm text-gray-600 flex gap-2 items-start" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                 <span className="mt-[2px] text-[#C5B097]">•</span> 
                  <span className="flex-1">
-                   {renderFormattedText(tip, "font-bold text-white print:text-gray-900")}
+                   {renderFormattedText(tip, "font-bold text-[#2C3E50]")}
                  </span>
               </li>
             ))}
           </ul>
           
-          <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row justify-between items-end gap-6 print:border-[#C5B097]/30" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+          <div className="border-t border-[#C5B097]/20 pt-6 flex flex-col md:flex-row justify-between items-end gap-6" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
             
             {/* Left: Inclusions List */}
             <div className="w-full md:w-auto text-left order-2 md:order-1">
@@ -261,14 +261,13 @@ export const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ data, formDa
               <div className="grid grid-cols-1 gap-2">
                  {(data.priceIncludes || []).length > 0 ? (
                     (data.priceIncludes || []).map((inc, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs text-white/70 print:text-gray-600">
+                      <div key={i} className="flex items-center gap-2 text-xs text-gray-600">
                         <CheckCircle2 size={12} className="text-[#C5B097]" />
                         <span>{inc}</span>
                       </div>
                     ))
                  ) : (
-                   // Fallback if older generation without inclusions
-                   <span className="text-xs text-white/50 print:text-gray-400">Private Transport, Entry Fees, Domestic Flights & More</span>
+                   <span className="text-xs text-gray-400">Private Transport, Entry Fees, Domestic Flights & More</span>
                  )}
               </div>
             </div>
@@ -276,7 +275,7 @@ export const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ data, formDa
             {/* Right: Price & Logo */}
             <div className="w-full md:w-auto text-right order-1 md:order-2">
               <p className="text-sm text-[#C5B097] font-serif mb-1 uppercase tracking-wider">Estimated Price (Per Person)</p>
-              <div className="text-3xl font-serif text-white print:text-[#2C3E50] mb-4">
+              <div className="text-xl md:text-2xl font-serif text-[#2C3E50] mb-4 max-w-sm ml-auto">
                 {data.totalEstimatedCost}
               </div>
               <img 
