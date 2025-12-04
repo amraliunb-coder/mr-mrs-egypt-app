@@ -92,9 +92,12 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
                     name: { type: SchemaType.STRING },
                     type: { 
                       type: SchemaType.STRING,
-                      description: "e.g. 5-Star Hotel, Dahabiya Cruise, Nile Cruise Ship"
+                      description: "e.g. 5-Star Hotel, Luxury Nile Cruise, Dahabiya Cruise, Boutique Hotel"
                     },
-                    description: { type: SchemaType.STRING }
+                    description: { 
+                      type: SchemaType.STRING,
+                      description: "Hotel/cruise description. For Nile Cruises, mention fixed departure schedules (Luxor: typically Saturday, Aswan: typically Monday). For Dahabiyas, emphasize exclusivity, intimacy, and flexibility."
+                    }
                   },
                   required: ["name", "type", "description"]
                 }
@@ -215,13 +218,25 @@ REQUIREMENTS:
 5. ACCOMMODATION RECOMMENDATIONS:
    - Suggest 2-3 specific hotel options matching the budget level.
    - Include mix of hotel styles (e.g., historic charm vs modern luxury).
-   - For Nile Cruise: Specify 3-night or 4-night cruise and mention it replaces hotels in Luxor/Aswan.
    
-   Examples by budget:
+   **For Nile Cruises:**
+   - If your itinerary includes a Nile Cruise between Luxor and Aswan, you MUST include cruise options in the accommodationOptions array.
+   - Specify whether it's a 3-night or 4-night cruise.
+   - Add a note that standard Nile Cruises have fixed schedules (typically Saturday departures from Luxor, Monday departures from Aswan).
+   - For Luxury/Ultra-Luxury budgets OR for Couple/Honeymoon/Small Group trips, also suggest Dahabiya cruises as a more exclusive boutique option.
+   - Dahabiya notes: Private sailboats with 8-12 cabins, more intimate and flexible, sail-powered with slower pace, ideal for honeymoons and small groups.
+   
+   Cruise examples by budget:
+   - Mid-Range Cruises: M/S Mayfair, M/S Royal Esadora, M/S Princess Sarah
+   - Luxury Cruises: M/S Farah, Oberoi Philae, Sanctuary Sun Boat IV
+   - Ultra-Luxury Cruises: Oberoi Zahra, Sanctuary Sun Boat III
+   - Dahabiya (Luxury/Ultra-Luxury): Dahabiya Amoura, Nebyt Dahabiya, Sanctuary Zein Nile Chateau
+   
+   Hotel examples by budget:
    - Budget: Steigenberger Pyramids Cairo, Iberotel Luxor
    - Mid-Range: Marriott Mena House Cairo, Hilton Luxor Resort & Spa
    - Luxury: Four Seasons Cairo at Nile Plaza, Sofitel Winter Palace Luxor, Sofitel Legend Old Cataract Aswan
-   - Ultra-Luxury: The Ritz-Carlton Cairo, Oberoi Zahra Nile Cruise, Sofitel Winter Palace Luxor
+   - Ultra-Luxury: The Ritz-Carlton Cairo, Sofitel Winter Palace Luxor
 
 6. DAY-BY-DAY STRUCTURE:
    - Each day should have a clear title reflecting the theme (e.g., "Day 1: Ancient Wonders of Giza").
