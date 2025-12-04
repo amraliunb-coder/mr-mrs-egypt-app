@@ -5,8 +5,8 @@ import { TravelFormData, ItineraryResponse } from "../types";
 export const generateItineraryPreview = async (
   formData: TravelFormData
 ): Promise<ItineraryResponse> => {
-
-  // 1. Load API Key
+  
+  // 1. Load API Key from Vercel
   const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
 
   if (!apiKey || apiKey.includes("undefined")) {
@@ -18,16 +18,13 @@ export const generateItineraryPreview = async (
   // 2. Initialize Gemini Client
   const genAI = new GoogleGenerativeAI(apiKey);
 
-  // 3. Use Latest Stable Model
- const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-pro",
-  generationConfig: {
-    responseMimeType: "application/json",
-    responseSchema: { ... }
-  }
-});
+  // 3. Use Latest Stable Model (VALID MODEL NAME)
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.0-pro",
+    generationConfig: {
+      responseMimeType: "application/json",
 
-      // 🚀 STRUCTURED OUTPUT SCHEMA
+      // STRUCTURED JSON OUTPUT SCHEMA
       responseSchema: {
         type: SchemaType.OBJECT,
         properties: {
@@ -71,11 +68,4 @@ export const generateItineraryPreview = async (
                 name: { type: SchemaType.STRING },
                 type: { type: SchemaType.STRING },
                 description: { type: SchemaType.STRING }
-              },
-              required: ["name", "type", "description"]
-            }
-          },
-
-          travelTips: {
-            type: SchemaType.ARRAY,
-            items: { type: Sc
+              }
