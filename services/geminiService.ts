@@ -19,10 +19,13 @@ export const generateItineraryPreview = async (
   const genAI = new GoogleGenerativeAI(apiKey);
 
   // 3. Use Latest Stable Model
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-pro",
-    generationConfig: {
-      responseMimeType: "application/json",
+ const model = genAI.getGenerativeModel({
+  model: "gemini-1.5-pro",
+  generationConfig: {
+    responseMimeType: "application/json",
+    responseSchema: { ... }
+  }
+});
 
       // 🚀 STRUCTURED OUTPUT SCHEMA
       responseSchema: {
