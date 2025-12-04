@@ -1,31 +1,39 @@
-// geminiService.ts
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { TravelFormData, ItineraryResponse } from "../types";
 
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
   
-  // --- TEMPORARY DEBUGGING ---
-  // 1. Paste your "AIza..." key directly here inside the quotes.
-  const apiKey = "AIzaSy_PASTE_YOUR_NEW_KEY_HERE"; 
-  
-  // 2. Initialize
-  const genAI = new GoogleGenerativeAI(apiKey);
+  // 1. Get API Key from Vercel Environment Variables
+  // (We are removing the hardcoded text now)
+  const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
 
-  // 3. Use the KNOWN working model
+  if (!apiKey || apiKey.includes("undefined") || apiKey.includes("PASTE_YOUR")) {
+    throw new Error("API Key is missing or invalid. Check Vercel Env Vars.");
+  }
+
+  // 2. Initialize Client
+  const genAI = new GoogleGenerativeAI(apiKey);
+  
+  // 3. Configure Model (Using the specific version to avoid 404s)
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash", // Do not use 2.0 yet
+    model: "gemini-1.5-flash-001", 
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: {
         type: SchemaType.OBJECT,
-        // ... (keep your existing schema properties here) ...
         properties: {
           tripTitle: { type: SchemaType.STRING },
           greeting: { type: SchemaType.STRING },
           summary: { type: SchemaType.STRING },
           totalEstimatedCost: { type: SchemaType.STRING },
-          priceIncludes: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-          highlights: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+          priceIncludes: { 
+            type: SchemaType.ARRAY, 
+            items: { type: SchemaType.STRING }
+          },
+          highlights: { 
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING }
+          },
           days: {
             type: SchemaType.ARRAY,
             items: {
@@ -57,11 +65,42 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
     }
   });
 
-  // ... (keep the prompt and response handling code) ...
-  const prompt = `Create a ${formData.duration}-day trip to Egypt...`; // (Keep your full prompt)
+  const prompt = `
+    You are a senior luxury travel consultant for "Mr & Mrs Egypt". 
+    Create a complete, detailed ${formData.duration}-day itinerary for a client.
 
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  const text = response.text();
-  return JSON.parse(text) as ItineraryResponse;
+    Client Details:
+    - Name: ${formData.name}
+    - Origin: ${formData.country}
+    - Dates: Starting ${formData.startDate} for ${formData.duration} days
+    - Trip Type: ${formData.tripType}
+    - Budget Level: ${formData.budgetRange}
+    - Primary Interest/Style: ${formData.travelStyle}
+    - Party: ${formData.groupSize} people ${formData.hasChildren ? '(includes children)' : '(adults only)'}
+    - Special Notes: ${formData.additionalNotes || "None"}
+
+    Requirements:
+    1. Tone: Sophisticated, professional, adapted to trip type.
+    2. Structure: Day-by-day breakdown with specific sites.
+    3. Hotels: Suggest 2-3 specific options.
+    4. Grand Egyptian Museum (GEM): Must be included as fully open.
+    5. Inclusions: Private Transport, Guide, Entry Tickets. Domestic Flights (Cairo-Luxor/Aswan ONLY).
+    6. Exclusions: International flights, tips.
+
+    Return a strict JSON object matching the requested schema.
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    if (!text) throw new Error("No response from AI");
+    
+    return JSON.parse(text) as ItineraryResponse;
+
+  } catch (error) {
+    console.error("Gemini Generation Error:", error);
+    throw error;
+  }
 };
