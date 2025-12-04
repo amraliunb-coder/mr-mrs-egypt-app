@@ -5,7 +5,7 @@ import { TravelFormData, ItineraryResponse } from "../types";
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
   
   // 1. Get Key
-  const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+ const apiKey = "AIzaSyAfRe3HcUQQiLMPU7_n1LJXpfrV_Jvll8o";
 
   if (!apiKey || apiKey.includes("undefined")) {
     throw new Error("API Key is missing. Please check Vercel Env Vars: VITE_GOOGLE_API_KEY");
