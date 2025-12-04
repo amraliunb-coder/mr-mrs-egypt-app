@@ -145,11 +145,16 @@ REQUIREMENTS:
    TRANSPORT CAIRO ↔ UPPER EGYPT:
    - Use "Domestic Flight" (approximately 1 hour flight time).
    - Routes available: Cairo-Luxor, Cairo-Aswan.
+   - **CRITICAL FLOW LOGIC**: Upper Egypt trips follow a ONE-WAY pattern to avoid backtracking:
+     * If starting in LUXOR: Fly Cairo → Luxor, travel Luxor → Aswan (by road or cruise), fly Aswan → Cairo.
+     * If starting in ASWAN: Fly Cairo → Aswan, travel Aswan → Luxor (by road or cruise), fly Luxor → Cairo.
+     * NEVER fly round-trip to the same city (e.g., Cairo-Luxor-Cairo) if visiting both Luxor and Aswan.
+   - This creates efficient flow and avoids unnecessary backtracking.
    
    TRANSPORT LUXOR ↔ ASWAN:
    - **NEVER** suggest a flight between Luxor and Aswan. This route does not exist as a standard tourist route.
-   - OPTION A (Default for shorter trips): "Private Air-Conditioned Vehicle" (approximately 3.5 - 4 hours). Mention it is a scenic desert road along the Nile.
-   - OPTION B (Preferred for 4+ days in Upper Egypt or luxury trips): "Luxury Nile Cruise" (3 or 4 nights) stopping at temples between Luxor and Aswan (Edfu, Kom Ombo).
+   - OPTION A (Default for shorter trips): "Private Air-Conditioned Vehicle" (approximately 3.5 - 4 hours). Mention it is a scenic desert road along the Nile. This is unidirectional travel - you move from one city to the other and fly back to Cairo from the destination city.
+   - OPTION B (Preferred for 4+ days in Upper Egypt or luxury trips): "Luxury Nile Cruise" (3 or 4 nights) stopping at temples between Luxor and Aswan (Edfu, Kom Ombo). Cruises are unidirectional - either Luxor to Aswan or Aswan to Luxor based on departure schedule.
    
    ABU SIMBEL:
    - Default to "Private Road Transfer" from Aswan (approximately 3 hours each way, early morning departure).
@@ -157,7 +162,18 @@ REQUIREMENTS:
    
    RED SEA EXTENSIONS:
    - For relaxation-focused trips or trips over 8 days, consider adding Hurghada or Sharm El-Sheikh.
-   - Access via domestic flight or private transfer from Cairo.
+   - **CRITICAL FLOW FOR 12+ DAY TRIPS WITH BEACHES/RELAXATION**:
+     * Logical flow: Cairo → Aswan → Luxor → Hurghada/Red Sea Resort
+     * This allows ending the cultural portion in Luxor and seamlessly transitioning to beach relaxation
+     * NEVER route back to Cairo before going to the Red Sea from Upper Egypt
+   - **Transport Luxor → Hurghada**: 
+     * Default: "Private Air-Conditioned Vehicle" (approximately 3.5 hours, scenic desert road)
+     * Only suggest domestic flight if budget is "Ultra-Luxury" and explicitly mentioned
+     * Road transfer is comfortable and preferred by most travelers
+   - **Transport from Red Sea to Cairo** (end of trip):
+     * Hurghada → Cairo: Domestic flight (1 hour) OR private transfer (5-6 hours)
+     * Sharm El-Sheikh → Cairo: Domestic flight only (1 hour)
+   - Red Sea stay duration: Minimum 3 nights, ideally 4-5 nights for proper relaxation
 
 3. STYLE ADAPTATION:
 
@@ -177,7 +193,9 @@ REQUIREMENTS:
    **Relaxation/Leisure**:
    - Pace the itinerary slower. Start late (after 9 AM), end early (by 3 PM).
    - Build in spa time, pool time, or free time daily.
-   - Prioritize Red Sea resorts for beach days.
+   - **For trips 12+ days**: MUST include Red Sea extension (minimum 3-4 nights) at the END of the trip.
+   - **Optimal flow for beach trips**: Cairo → Aswan → Luxor → Hurghada/Red Sea (NOT back to Cairo between Luxor and Red Sea).
+   - Prioritize Red Sea resorts for beach days (Hurghada, Marsa Alam, or Sharm El-Sheikh).
    - Suggest sunset experiences (felucca rides, rooftop dining).
    
    **Cultural Immersion**:
@@ -200,7 +218,13 @@ REQUIREMENTS:
    - All Entry Tickets to sites and museums
    - Private Egyptologist Guide (for all touring days)
    - VIP Meet & Greet at airport upon arrival
-   - Domestic Flights: ONLY major legs (Cairo-Luxor OR Cairo-Aswan). DO NOT include Luxor-Aswan flights.
+   - Domestic Flights: Include based on Upper Egypt flow:
+     * If visiting ONLY Luxor: Cairo-Luxor round-trip
+     * If visiting ONLY Aswan: Cairo-Aswan round-trip  
+     * If visiting BOTH Luxor & Aswan: One-way flights (Cairo → Luxor, Aswan → Cairo) OR (Cairo → Aswan, Luxor → Cairo)
+     * If adding RED SEA from Upper Egypt: Include Cairo → Aswan (or Luxor), then Hurghada → Cairo at end (Luxor-Hurghada is by road unless Ultra-Luxury)
+     * DO NOT include Luxor-Aswan flights (they don't exist as regular routes)
+     * DO NOT include Luxor-Hurghada flights unless Ultra-Luxury budget
    
    NEVER INCLUDED:
    - International flights
@@ -242,6 +266,12 @@ REQUIREMENTS:
    - Each day should have a clear title reflecting the theme (e.g., "Day 1: Ancient Wonders of Giza").
    - List 3-6 activities per day, depending on pace.
    - Include timing context where relevant (e.g., "Morning: Visit the Pyramids", "Afternoon: Explore GEM").
+   - **Flight Days**: When mentioning flights, be specific about direction based on Upper Egypt flow:
+     * Example: "Morning flight from Cairo to Luxor" (if starting in Luxor)
+     * Example: "Evening flight from Aswan back to Cairo" (if ending in Aswan)
+     * If doing Luxor → Aswan: mention "flight from Cairo to Luxor" early, then "flight from Aswan to Cairo" at end
+     * If doing Aswan → Luxor: mention "flight from Cairo to Aswan" early, then "flight from Luxor to Cairo" at end
+     * **For Red Sea extensions**: Mention "Private transfer from Luxor to Hurghada (3.5 hours)" and later "Flight from Hurghada to Cairo" (unless Ultra-Luxury, then can mention flight option)
    - Add evening notes with dining or leisure suggestions.
    - Ensure logical flow and geographical grouping (don't zigzag across cities unnecessarily).
 
