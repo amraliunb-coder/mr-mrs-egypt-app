@@ -24,6 +24,9 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
 
   let lastError: any = null;
 
+  // Helper function to wait/delay
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   // Try each model until one works
   for (const modelName of modelsToTry) {
     try {
@@ -215,10 +218,10 @@ REQUIREMENTS:
    - For Nile Cruise: Specify 3-night or 4-night cruise and mention it replaces hotels in Luxor/Aswan.
    
    Examples by budget:
-   - Budget: Steigenberger Pyramids Cairo, Sofitel Winter Palace Luxor
+   - Budget: Steigenberger Pyramids Cairo, Iberotel Luxor
    - Mid-Range: Marriott Mena House Cairo, Hilton Luxor Resort & Spa
-   - Luxury: Four Seasons Cairo at Nile Plaza, Sofitel Legend Old Cataract Aswan
-   - Ultra-Luxury: The Ritz-Carlton Cairo, Oberoi Zahra Nile Cruise
+   - Luxury: Four Seasons Cairo at Nile Plaza, Sofitel Winter Palace Luxor, Sofitel Legend Old Cataract Aswan
+   - Ultra-Luxury: The Ritz-Carlton Cairo, Oberoi Zahra Nile Cruise, Sofitel Winter Palace Luxor
 
 6. DAY-BY-DAY STRUCTURE:
    - Each day should have a clear title reflecting the theme (e.g., "Day 1: Ancient Wonders of Giza").
@@ -249,7 +252,14 @@ Return a strict JSON object matching the requested schema. Ensure all required f
       console.error(`Error with model ${modelName}:`, error?.message || error);
       lastError = error;
       
-      // If it's not a 404 error, don't try other models
+      // Check if it's a rate limit error (429)
+      if (error?.message?.includes("429") || error?.message?.includes("quota")) {
+        console.log("Rate limit hit. Waiting 7 seconds before trying next model...");
+        await delay(7000); // Wait 7 seconds as suggested by the error
+        continue;
+      }
+      
+      // If it's not a 404 or rate limit error, don't try other models
       if (!error?.message?.includes("404") && !error?.message?.includes("not found")) {
         throw error;
       }
