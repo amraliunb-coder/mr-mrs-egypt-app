@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ItineraryResponse, TravelFormData } from '../types';
-import { Download, Calendar, MapPin, Star, Info, ArrowLeft, Loader2, CheckCircle2, Sparkles, Users, Clock } from 'lucide-react';
+import { Download, Calendar, MapPin, Star, Info, ArrowLeft, Loader2, CheckCircle2, Sparkles, Users, Clock, Mail, MessageCircle, Phone, ArrowRight } from 'lucide-react';
 
 interface ItineraryDisplayProps {
   data: ItineraryResponse;
@@ -51,6 +51,15 @@ export const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ data, formDa
     } finally {
       setIsGeneratingPdf(false);
     }
+  };
+
+  const handleEmailClick = () => {
+    window.location.href = 'mailto:info@mrandmrsegypt.com?subject=Inquiry about my Egypt Itinerary&body=Hello, I would like to discuss my personalized itinerary for Egypt.';
+  };
+
+  const handleWhatsAppClick = () => {
+    const message = encodeURIComponent('Hello, I would like to discuss my personalized Egypt itinerary');
+    window.open(`https://wa.me/201022106120?text=${message}`, '_blank');
   };
 
   const renderFormattedText = (text: string, className: string = 'font-bold') => {
@@ -295,6 +304,22 @@ export const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ data, formDa
                 ))}
               </div>
             </div>
+
+            {/* Micro CTA After Itinerary - No Print */}
+            <div className="mt-12 no-print" data-html2canvas-ignore>
+              <div className="bg-gradient-to-r from-[#C5B097]/10 to-[#B08D55]/10 border border-[#C5B097]/20 rounded-xl p-6 text-center">
+                <p className="text-gray-700 mb-3">
+                  <span className="font-semibold text-[#2C3E50]">Need more time at a specific destination?</span> We can adjust your itinerary to match your pace.
+                </p>
+                <button 
+                  onClick={handleEmailClick}
+                  className="inline-flex items-center gap-2 text-[#C5B097] hover:text-[#B08D55] font-medium transition-colors group"
+                >
+                  <span>Let's customize this</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Accommodations */}
@@ -320,6 +345,106 @@ export const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ data, formDa
                   <p className="text-gray-600 leading-relaxed">{renderFormattedText(hotel.description)}</p>
                 </div>
               ))}
+            </div>
+
+            {/* Micro CTA After Accommodations - No Print */}
+            <div className="mt-8 no-print" data-html2canvas-ignore>
+              <div className="bg-gradient-to-r from-[#C5B097]/10 to-[#B08D55]/10 border border-[#C5B097]/20 rounded-xl p-6 text-center">
+                <p className="text-gray-700 mb-3">
+                  <span className="font-semibold text-[#2C3E50]">Prefer different accommodation options?</span> We work with the finest hotels in Egypt.
+                </p>
+                <button 
+                  onClick={handleEmailClick}
+                  className="inline-flex items-center gap-2 text-[#C5B097] hover:text-[#B08D55] font-medium transition-colors group"
+                >
+                  <span>Explore upgrade options</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Main CTA Section - No Print */}
+          <div className="px-8 md:px-16 py-16 bg-gradient-to-br from-[#F9F9F7] to-white no-print" data-html2canvas-ignore>
+            <div className="max-w-3xl mx-auto text-center">
+              {/* Icon */}
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#C5B097]/10 mb-6">
+                <Sparkles className="text-[#C5B097]" size={32} />
+              </div>
+
+              {/* Heading */}
+              <h3 className="font-serif text-3xl md:text-4xl text-[#2C3E50] mb-4">
+                Love This Itinerary?
+              </h3>
+
+              {/* Description */}
+              <p className="text-gray-600 text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
+                Every journey is uniquely crafted. Let's discuss your preferences, finalize pricing, and ensure every detail is perfect for your Egyptian adventure.
+              </p>
+
+              {/* Primary & Secondary CTAs */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+                <button 
+                  onClick={handleEmailClick}
+                  className="group bg-gradient-to-r from-[#C5B097] to-[#B08D55] text-white px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center gap-3 hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+                >
+                  <Mail size={20} />
+                  <span>Get Your Final Quote</span>
+                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                <button 
+                  onClick={handleWhatsAppClick}
+                  className="group bg-white text-[#2C3E50] px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center gap-3 border-2 border-[#C5B097] hover:bg-[#C5B097]/5 transition-all hover:scale-105 active:scale-95"
+                >
+                  <MessageCircle size={20} />
+                  <span>Chat on WhatsApp</span>
+                </button>
+              </div>
+
+              {/* Contact Information */}
+              <div className="border-t border-[#C5B097]/20 pt-8">
+                <p className="text-sm text-gray-500 mb-4 uppercase tracking-wider font-semibold">Reach Out Directly</p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-gray-700">
+                  <a 
+                    href="mailto:info@mrandmrsegypt.com" 
+                    className="flex items-center gap-2 hover:text-[#C5B097] transition-colors group"
+                  >
+                    <Mail size={18} className="text-[#C5B097]" />
+                    <span className="group-hover:underline">info@mrandmrsegypt.com</span>
+                  </a>
+                  <span className="hidden sm:block text-gray-300">|</span>
+                  <a 
+                    href="tel:+201022106120" 
+                    className="flex items-center gap-2 hover:text-[#C5B097] transition-colors group"
+                  >
+                    <Phone size={18} className="text-[#C5B097]" />
+                    <span className="group-hover:underline">+20 102 210 6120</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Trust Badges */}
+              <div className="mt-10 pt-8 border-t border-[#C5B097]/20">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-[#C5B097] mb-1">100%</div>
+                    <div className="text-xs text-gray-500 uppercase tracking-wider">Customizable</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-[#C5B097] mb-1">Free</div>
+                    <div className="text-xs text-gray-500 uppercase tracking-wider">Consultation</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-[#C5B097] mb-1">24/7</div>
+                    <div className="text-xs text-gray-500 uppercase tracking-wider">Support</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-[#C5B097] mb-1">No</div>
+                    <div className="text-xs text-gray-500 uppercase tracking-wider">Obligation</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -379,6 +504,9 @@ export const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ data, formDa
                 <div className="text-4xl font-serif text-white print:text-[#2C3E50]">
                   {data.totalEstimatedCost}
                 </div>
+                <p className="text-xs text-white/60 print:text-gray-500 mt-2 italic">
+                  This itinerary is just the beginning. Let's make it yours.
+                </p>
               </div>
 
               {/* Logo */}
