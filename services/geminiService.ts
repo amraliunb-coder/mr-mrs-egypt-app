@@ -3,7 +3,7 @@ import { TravelFormData, ItineraryResponse } from "../types";
 
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
   
-  // 1. Get API Key from Environment Variables (works for both Vercel and local dev)
+  // 1. Get API Key - Works for both Vercel AND local development
   const apiKey = process.env.GOOGLE_API_KEY || 
                  process.env.VITE_GOOGLE_API_KEY || 
                  import.meta.env.VITE_GOOGLE_API_KEY;
@@ -14,13 +14,9 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
 
   // 2. Initialize Client
   const genAI = new GoogleGenerativeAI(apiKey);
-
-  // List of models to try in order of preference
+  
+  // List of models to try in order of preference (ONLY REAL, WORKING MODELS)
   const modelsToTry = [
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-pro-latest",
-    "gemini-1.5-flash-002",
-    "gemini-1.5-pro-002",
     "gemini-1.5-flash",
     "gemini-1.5-pro",
     "gemini-1.0-pro"
@@ -352,7 +348,7 @@ Return a strict JSON object matching the requested schema. Ensure all required f
       // Check if it's a rate limit error (429)
       if (error?.message?.includes("429") || error?.message?.includes("quota")) {
         console.log("Rate limit hit. Waiting 7 seconds before trying next model...");
-        await delay(7000); // Wait 7 seconds as suggested by the error
+        await delay(7000);
         continue;
       }
       
