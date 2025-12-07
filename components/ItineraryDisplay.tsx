@@ -75,8 +75,6 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
   };
 
   const submitQuoteRequest = (e: React.FormEvent) => {
-    // This prop is required by interface but logic is handled inside QuoteModal for email trigger
-    // We keep it as a no-op or simple logger to satisfy TypeScript
     e.preventDefault();
     console.log('Quote request submitted via modal internal logic');
   };
@@ -89,7 +87,6 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
   const submitEmailRequest = (e: React.FormEvent) => {
     e.preventDefault();
     setEmailStatus('sending');
-    // Simulate email send
     setTimeout(() => {
         setEmailStatus('sent');
         setTimeout(() => {
@@ -99,7 +96,7 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
     }, 1500);
   };
 
-  // PDF Download Handler
+  // Enhanced PDF Download Handler
   const handleDownloadPDF = async () => {
     if (isDownloading) return;
     
@@ -109,21 +106,57 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
       if (typeof window !== 'undefined' && (window as any).html2pdf && printRef.current) {
         const element = printRef.current;
         
+        // Add print-specific styles
+        const style = document.createElement('style');
+        style.textContent = `
+          @media print {
+            @page {
+              size: A4;
+              margin: 0.5in;
+            }
+            
+            .print-container {
+              font-size: 12pt !important;
+              line-height: 1.4 !important;
+            }
+            
+            .print-container h1 { font-size: 24pt !important; }
+            .print-container h2 { font-size: 18pt !important; }
+            .print-container h3 { font-size: 14pt !important; }
+            
+            .avoid-break { page-break-inside: avoid !important; }
+            .page-break { page-break-before: always !important; }
+            .page-break-after { page-break-after: always !important; }
+            
+            .no-print { display: none !important; }
+            
+            .print-border { border-color: #000 !important; }
+            .print-text-dark { color: #000 !important; }
+          }
+        `;
+        document.head.appendChild(style);
+        
         const opt = {
-          margin: [0.5, 0.5, 0.5, 0.5],
+          margin: [0.5, 0.5, 0.5, 0.5], // top, right, bottom, left
           filename: `Egypt-Itinerary-${formData.name.replace(/\s+/g, '-')}.pdf`,
-          image: { type: 'jpeg', quality: 0.95 },
+          image: { type: 'jpeg', quality: 0.98 },
           html2canvas: { 
-            scale: 2, 
+            scale: 1.5, // Reduced scale for better performance
             useCORS: true,
             logging: false,
-            letterRendering: true
+            letterRendering: true,
+            width: 794, // A4 width in pixels at 96 DPI
+            height: 1123, // A4 height in pixels at 96 DPI
+            windowWidth: 794,
+            windowHeight: 1123
           },
           jsPDF: { 
-            unit: 'in', 
+            unit: 'pt', // Points for better precision
             format: 'a4', 
             orientation: 'portrait',
-            compress: true
+            compress: true,
+            putOnlyUsedFonts: true,
+            floatPrecision: 16
           },
           pagebreak: { 
             mode: ['avoid-all', 'css', 'legacy'],
@@ -133,10 +166,51 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
           }
         };
         
-        await (window as any).html2pdf().set(opt).from(element).save();
+        // Add page break elements strategically
+        const addPageBreaks = () => {
+          // Add page breaks before major sections
+          const sections = element.querySelectorAll('.avoid-break');
+          sections.forEach((section, index) => {
+            if (index > 0 && index % 2 === 0) { // Add page break every 2 sections
+              section.classList.add('page-break');
+            }
+          });
+        };
+        
+        addPageBreaks();
+        
+        await (window as any).html2pdf()
+          .set(opt)
+          .from(element)
+          .save()
+          .finally(() => {
+            // Clean up
+            document.head.removeChild(style);
+            // Remove temporary page break classes
+            element.querySelectorAll('.page-break').forEach(el => {
+              el.classList.remove('page-break');
+            });
+          });
+          
       } else {
-        // Fallback to browser print dialog
+        // Enhanced fallback to browser print
+        const printStyles = document.createElement('style');
+        printStyles.textContent = `
+          @media print {
+            body * { visibility: hidden; }
+            #itinerary-pdf-content, #itinerary-pdf-content * { visibility: visible; }
+            #itinerary-pdf-content { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+            @page { margin: 0.5in; size: A4; }
+          }
+        `;
+        document.head.appendChild(printStyles);
+        
         window.print();
+        
+        setTimeout(() => {
+          document.head.removeChild(printStyles);
+        }, 1000);
       }
     } catch (error) {
       console.error('PDF generation failed:', error);
@@ -147,10 +221,8 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
   };
 
   const handleEmailWithPDF = async () => {
-    // 1. Trigger PDF Download
     await handleDownloadPDF();
     
-    // 2. Small delay to let download start
     setTimeout(() => {
       alert("Please attach the downloaded PDF to the email that will open next.");
       
@@ -378,9 +450,11 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
                   {[
                     'International flights',
                     'Entry Visa ($25 USD)',
-                    'Lunches & Dinners (unless specified)',
+                    'Dinners (unless specifically mentioned in itinerary)',
                     'Gratuities',
-                    'Travel Insurance'
+                    'Travel Insurance',
+                    'Personal expenses',
+                    'Optional experiences not listed in itinerary'
                   ].map((item, idx) => (
                     <li key={idx} className="flex items-start gap-3 text-sm text-gray-500">
                       <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-1.5 shrink-0"></div>
