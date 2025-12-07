@@ -1,6 +1,23 @@
-import React, { useState } from 'react';
-import { ItineraryResponse, TravelFormData } from '../types';
-import { Download, Calendar, MapPin, Star, Info, ArrowLeft, Loader2, CheckCircle2, Sparkles, Users, Clock, Mail, MessageCircle, Phone, ArrowRight } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { 
+  Download, 
+  RefreshCw, 
+  CheckCircle, 
+  Star,
+  MessageCircle,
+  Mail,
+  MapPin,
+  Calendar,
+  Users,
+  DollarSign,
+  AlertCircle,
+  Clock,
+  Shield,
+  Heart,
+  Info
+} from 'lucide-react';
+import { TravelFormData, ItineraryResponse } from '../types';
+import { WhatsAppModal, QuoteModal, EmailModal } from './Modals';
 
 interface ItineraryDisplayProps {
   data: ItineraryResponse;
@@ -9,60 +26,153 @@ interface ItineraryDisplayProps {
   onReset: () => void;
 }
 
-export const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ data, formData, logoUrl, onReset }) => {
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+export function ItineraryDisplay({ data, formData, logoUrl, onReset }: ItineraryDisplayProps) {
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [isDownloading, setIsDownloading] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
-  const handleDownloadPDF = async () => {
-    setIsGeneratingPdf(true);
+  // Calculate booking urgency
+  const getBookingUrgency = () => {
+    if (!formData.startDate) return null;
     
-    const element = document.getElementById('itinerary-pdf-content');
+    const today = new Date();
+    const tripDate = new Date(formData.startDate);
+    const monthsAway = Math.floor((tripDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 30));
     
-    if (!element) {
-      setIsGeneratingPdf(false);
-      return;
+    if (monthsAway >= 3 && monthsAway <= 9) {
+      return {
+        show: true,
+        monthsAway,
+        message: monthsAway <= 5 ? 'high' : 'medium'
+      };
     }
+    return null;
+  };
 
-    const filename = `${formData.name.replace(/[^a-zA-Z0-9]/g, '_')}_Egypt_Itinerary.pdf`;
+  const urgency = getBookingUrgency();
 
-    const opt = {
-      margin: [10, 10, 10, 10],
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true, 
-        scrollY: 0,
-        letterRendering: true 
-      },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'] }
-    };
+  // WhatsApp handler with device detection
+  const handleWhatsAppClick = () => {
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+    const phone = "201022106120";
+    const message = encodeURIComponent(
+      `Hi! I'd like to discuss my ${formData.duration}-day Egypt itinerary for ${formData.name}. Travel dates: ${formData.startDate}`
+    );
+    
+    if (isMobile) {
+      window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+    } else {
+      setShowWhatsAppModal(true);
+    }
+  };
 
+  // Quote request handler
+  const handleQuoteRequest = () => {
+    setShowQuoteModal(true);
+  };
+
+  const submitQuoteRequest = (e: React.FormEvent) => {
+    // This prop is required by interface but logic is handled inside QuoteModal for email trigger
+    // We keep it as a no-op or simple logger to satisfy TypeScript
+    e.preventDefault();
+    console.log('Quote request submitted via modal internal logic');
+  };
+
+  // Email Itinerary Handler
+  const handleEmailItinerary = () => {
+    setShowEmailModal(true);
+  };
+
+  const submitEmailRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailStatus('sending');
+    // Simulate email send
+    setTimeout(() => {
+        setEmailStatus('sent');
+        setTimeout(() => {
+            setShowEmailModal(false);
+            setEmailStatus('idle');
+        }, 2000);
+    }, 1500);
+  };
+
+  // PDF Download Handler
+  const handleDownloadPDF = async () => {
+    if (isDownloading) return;
+    
+    setIsDownloading(true);
+    
     try {
-      if (typeof window !== 'undefined' && (window as any).html2pdf) {
+      if (typeof window !== 'undefined' && (window as any).html2pdf && printRef.current) {
+        const element = printRef.current;
+        
+        const opt = {
+          margin: [0.5, 0.5, 0.5, 0.5],
+          filename: `Egypt-Itinerary-${formData.name.replace(/\s+/g, '-')}.pdf`,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { 
+            scale: 2, 
+            useCORS: true,
+            logging: false,
+            letterRendering: true
+          },
+          jsPDF: { 
+            unit: 'in', 
+            format: 'a4', 
+            orientation: 'portrait',
+            compress: true
+          },
+          pagebreak: { 
+            mode: ['avoid-all', 'css', 'legacy'],
+            before: '.page-break',
+            after: '.page-break-after',
+            avoid: '.avoid-break'
+          }
+        };
+        
         await (window as any).html2pdf().set(opt).from(element).save();
       } else {
+        // Fallback to browser print dialog
         window.print();
       }
-    } catch (err) {
-      console.error("PDF Generation failed", err);
-      alert("There was an error generating the PDF file. Opening print dialog instead.");
-      window.print();
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      alert('PDF generation failed. Please try using the print function (Ctrl+P / Cmd+P)');
     } finally {
-      setIsGeneratingPdf(false);
+      setIsDownloading(false);
     }
   };
 
-  const handleEmailClick = () => {
-    window.location.href = 'mailto:info@mrandmrsegypt.com?subject=Inquiry about my Egypt Itinerary&body=Hello, I would like to discuss my personalized itinerary for Egypt.';
+  const handleEmailWithPDF = async () => {
+    // 1. Trigger PDF Download
+    await handleDownloadPDF();
+    
+    // 2. Small delay to let download start
+    setTimeout(() => {
+      alert("Please attach the downloaded PDF to the email that will open next.");
+      
+      const subject = encodeURIComponent(`Itinerary Inquiry - ${formData.name} - ${formData.duration} Days`);
+      const bodyContent = `Hello,\n\nI would like to discuss and finalize my personalized Egypt itinerary.\n\nTRAVELER DETAILS:\nName: ${formData.name}\nDuration: ${formData.duration} days\nStart Date: ${formData.startDate}\nGroup Size: ${formData.groupSize}\n\n(I have attached the generated PDF itinerary)`;
+      
+      window.location.href = `mailto:info@mrandmrsegypt.com?subject=${subject}&body=${encodeURIComponent(bodyContent)}`;
+    }, 1500);
   };
 
-  const handleWhatsAppClick = () => {
-    const message = encodeURIComponent('Hello, I would like to discuss my personalized Egypt itinerary');
-    window.open(`https://wa.me/201022106120?text=${message}`, '_blank');
+  // Format date range
+  const formatDateRange = () => {
+    if (!formData.startDate) return '';
+    const start = new Date(formData.startDate);
+    const end = new Date(start);
+    end.setDate(end.getDate() + parseInt(formData.duration));
+    
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+    return `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
   };
 
-  const renderFormattedText = (text: string, className: string = 'font-bold') => {
+  const renderFormattedText = (text: string) => {
     if (!text) return null;
     const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
     
@@ -71,7 +181,7 @@ export const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ data, formDa
         {parts.map((part, index) => {
           if ((part.startsWith('**') && part.endsWith('**')) || (part.startsWith('*') && part.endsWith('*'))) {
             const content = part.replace(/\*/g, '');
-            return <strong key={index} className={className}>{content}</strong>;
+            return <strong key={index} className="font-bold">{content}</strong>;
           }
           return <span key={index}>{part}</span>;
         })}
@@ -80,449 +190,396 @@ export const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ data, formDa
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto animate-fadeInUp pb-20">
-      
-      {/* Itinerary Document */}
-      <div 
-        id="itinerary-pdf-content"
-        className="bg-white text-[#2C3E50] rounded-none md:rounded-2xl shadow-2xl overflow-hidden print-container relative border border-gray-100"
-      >
-        
-        {/* HERO HEADER SECTION */}
-        <div className="relative bg-gradient-to-br from-[#2C3E50] via-[#34495e] to-[#2C3E50] text-white overflow-hidden">
-          {/* Decorative Background Pattern */}
-          <div className="absolute inset-0 opacity-[0.03]">
-            <div className="absolute top-0 left-0 w-full h-full" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            }}></div>
-          </div>
+    <>
+      {/* Sticky Mobile CTA */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-gray-200 p-4 shadow-2xl no-print">
+        <button 
+          onClick={handleQuoteRequest}
+          className="w-full bg-[#C5B097] text-white py-4 rounded-full font-bold shadow-lg hover:bg-[#B5A087] transition-all flex items-center justify-center gap-2"
+        >
+          <Mail size={20} />
+          Get Your Final Quote
+        </button>
+      </div>
 
-          {/* Gold Accent Line */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#C5B097] to-transparent"></div>
+      {/* Floating Desktop CTA */}
+      <div className="hidden md:block fixed right-8 top-1/2 -translate-y-1/2 z-50 space-y-3 no-print">
+        <button 
+          onClick={handleQuoteRequest}
+          className="bg-[#C5B097] text-white px-6 py-4 rounded-full shadow-xl hover:scale-105 hover:shadow-2xl transition-all flex items-center gap-2 font-bold"
+        >
+          <Mail size={20} />
+          Get Quote
+        </button>
+        <button 
+          onClick={handleWhatsAppClick}
+          className="bg-[#25D366] text-white px-6 py-4 rounded-full shadow-xl hover:scale-105 hover:shadow-2xl transition-all flex items-center gap-2 font-bold"
+        >
+          <MessageCircle size={20} />
+          WhatsApp
+        </button>
+      </div>
 
-          <div className="relative z-10 p-8 md:p-16">
-            {/* Logo */}
-            <div className="mb-8">
-              <img 
-                src={logoUrl} 
-                alt="Mr & Mrs Egypt" 
-                className="h-16 w-auto object-contain opacity-90" 
-                crossOrigin="anonymous" 
-              />
-            </div>
-
-            {/* Title Section */}
-            <div className="mb-8">
-              <div className="inline-flex items-center gap-2 bg-[#C5B097]/20 backdrop-blur-sm px-4 py-2 rounded-full mb-4 border border-[#C5B097]/30">
-                <Sparkles size={16} className="text-[#C5B097]" />
-                <span className="text-[#C5B097] text-sm font-medium tracking-wider uppercase">Bespoke Journey</span>
-              </div>
-              <h1 className="font-serif text-4xl md:text-5xl mb-3 text-white leading-tight">{data.tripTitle}</h1>
-              <p className="font-script text-[#C5B097] text-2xl md:text-3xl">For {formData.name}</p>
-            </div>
-            
-            {/* Trip Details Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6">
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock size={16} className="text-[#C5B097]" />
-                  <span className="text-[#C5B097] uppercase tracking-widest text-xs font-semibold">Duration</span>
-                </div>
-                <p className="text-white font-medium">{formData.duration} Days</p>
-              </div>
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users size={16} className="text-[#C5B097]" />
-                  <span className="text-[#C5B097] uppercase tracking-widest text-xs font-semibold">Travelers</span>
-                </div>
-                <p className="text-white font-medium">{formData.groupSize} Guests</p>
-              </div>
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <div className="flex items-center gap-2 mb-2">
-                  <Star size={16} className="text-[#C5B097]" />
-                  <span className="text-[#C5B097] uppercase tracking-widest text-xs font-semibold">Style</span>
-                </div>
-                <p className="text-white font-medium text-sm">{formData.travelStyle.split(' ')[0]}</p>
-              </div>
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <div className="flex items-center gap-2 mb-2">
-                  <Calendar size={16} className="text-[#C5B097]" />
-                  <span className="text-[#C5B097] uppercase tracking-widest text-xs font-semibold">Starts</span>
-                </div>
-                <p className="text-white font-medium text-sm">{formData.startDate}</p>
-              </div>
-            </div>
-
-            {/* ACTION BUTTONS */}
-            <div className="flex flex-wrap gap-3 pt-4 border-t border-white/10 no-print" data-html2canvas-ignore>
-              <button 
-                onClick={handleDownloadPDF}
-                disabled={isGeneratingPdf}
-                className="group bg-[#C5B097] text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 hover:bg-[#B08D55] transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
-              >
-                {isGeneratingPdf ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    <span>Generating PDF...</span>
-                  </>
-                ) : (
-                  <>
-                    <Download size={18} />
-                    <span>Download Itinerary</span>
-                  </>
-                )}
-              </button>
-              <button 
-                onClick={onReset}
-                className="flex items-center gap-2 text-white/80 hover:text-white transition-colors px-6 py-3 rounded-full hover:bg-white/5"
-              >
-                <ArrowLeft size={18} />
-                <span>Create New Journey</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Bottom Wave Decoration */}
-          <div className="absolute bottom-0 left-0 w-full">
-            <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-8 md:h-12">
-              <path d="M0,0 L0,60 Q300,90 600,60 T1200,60 L1200,0 Z" fill="white"></path>
-            </svg>
-          </div>
+      {/* Main Content */}
+      <div className="max-w-5xl mx-auto pb-32 md:pb-8">
+        {/* Action Bar */}
+        <div className="flex justify-between items-center mb-8 no-print">
+          <button 
+            onClick={onReset}
+            className="flex items-center gap-2 text-gray-600 hover:text-[#2C3E50] transition-colors"
+          >
+            <RefreshCw size={18} />
+            <span className="hidden md:inline">Start Over</span>
+          </button>
+          <button 
+            onClick={handleDownloadPDF}
+            disabled={isDownloading}
+            className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download size={18} />
+            <span className="hidden md:inline">
+              {isDownloading ? 'Generating PDF...' : 'Download PDF'}
+            </span>
+          </button>
         </div>
 
-        {/* CONTENT BODY */}
-        <div className="bg-white">
+        {/* PDF Container */}
+        <div ref={printRef} id="itinerary-pdf-content" className="print-container bg-white rounded-2xl shadow-xl overflow-hidden text-[#2C3E50]">
           
-          {/* Welcome Message */}
-          <div className="px-8 md:px-16 pt-12 pb-8" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-            <div className="flex items-start gap-4 mb-6">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#C5B097]/10 flex items-center justify-center">
-                <Sparkles className="text-[#C5B097]" size={24} />
-              </div>
-              <div className="flex-1">
-                <h2 className="font-serif text-2xl text-[#2C3E50] mb-3">Welcome to Your Journey</h2>
-                <p className="font-sans text-lg leading-relaxed text-gray-700 italic border-l-4 border-[#C5B097] pl-4 py-2 bg-[#F9F9F7]">
-                  "{data.greeting}"
-                </p>
+          {/* Hero Header */}
+          <div className="relative bg-gradient-to-br from-[#2C3E50] to-[#34495E] text-white p-8 md:p-12 print-text-dark">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#C5B097]/10 rounded-full blur-3xl"></div>
+            <div className="relative z-10">
+              <img src={logoUrl} alt="Mr & Mrs Egypt" className="h-16 md:h-20 mb-6 object-contain" />
+              <h1 className="text-3xl md:text-5xl font-serif mb-3 leading-tight">{data.tripTitle}</h1>
+              <p className="text-xl md:text-2xl text-white/90 mb-6 font-script">Prepared for {formData.name}</p>
+              
+              {/* Trip Details Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-white/10 print-border">
+                <div className="flex items-center gap-3">
+                  <Calendar size={20} className="text-[#C5B097]" />
+                  <div>
+                    <div className="text-xs text-white/60 uppercase tracking-wider">Dates</div>
+                    <div className="text-sm font-semibold">{formatDateRange()}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock size={20} className="text-[#C5B097]" />
+                  <div>
+                    <div className="text-xs text-white/60 uppercase tracking-wider">Duration</div>
+                    <div className="text-sm font-semibold">{formData.duration} Days</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Users size={20} className="text-[#C5B097]" />
+                  <div>
+                    <div className="text-xs text-white/60 uppercase tracking-wider">Travelers</div>
+                    <div className="text-sm font-semibold">{formData.groupSize} Guests</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Heart size={20} className="text-[#C5B097]" />
+                  <div>
+                    <div className="text-xs text-white/60 uppercase tracking-wider">Style</div>
+                    <div className="text-sm font-semibold">{formData.tripType}</div>
+                  </div>
+                </div>
               </div>
             </div>
-            <p className="font-sans leading-relaxed text-gray-600 text-base">
-              {data.summary}
-            </p>
           </div>
 
-          <div className="px-8 md:px-16">
-            <div className="h-px bg-gradient-to-r from-transparent via-[#C5B097]/30 to-transparent"></div>
-          </div>
-
-          {/* Highlights Section */}
-          <div className="px-8 md:px-16 py-12" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-            <div className="flex items-center gap-3 mb-8">
-              <Star className="text-[#C5B097]" size={28} />
-              <h3 className="font-serif text-3xl text-[#2C3E50]">Journey Highlights</h3>
+          {/* Summary Section */}
+          <div className="p-8 md:p-12 border-b border-gray-100 avoid-break">
+            <h2 className="text-2xl font-serif text-[#C5B097] mb-4">Your Journey Begins</h2>
+            <p className="text-lg text-gray-700 leading-relaxed mb-8 italic">"{data.greeting}"</p>
+            <p className="text-gray-600 leading-relaxed mb-8">{data.summary}</p>
+            
+            {/* Budget Display */}
+            <div className="bg-[#F9F9F7] rounded-xl p-6 border border-[#C5B097]/20 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div>
+                <div className="text-sm text-gray-500 uppercase tracking-wider mb-1">Estimated Investment</div>
+                <div className="text-3xl font-serif text-[#2C3E50]">{data.totalEstimatedCost}</div>
+                <div className="text-xs text-gray-400 mt-1">Per person • Excluding international flights</div>
+              </div>
+              <div className="w-12 h-12 bg-[#C5B097]/10 rounded-full flex items-center justify-center">
+                <DollarSign size={24} className="text-[#C5B097]" />
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(data.highlights || []).map((highlight, idx) => (
-                <div 
-                  key={idx} 
-                  className="group relative bg-gradient-to-br from-[#F9F9F7] to-white p-5 rounded-xl border border-[#C5B097]/20 hover:border-[#C5B097]/40 transition-all hover:shadow-md"
-                  style={{ pageBreakInside: 'avoid' }}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#C5B097]/10 flex items-center justify-center font-serif text-[#C5B097] font-bold text-lg">
-                      {idx + 1}
-                    </div>
-                    <p className="text-gray-800 leading-relaxed flex-1 pt-1">
-                      {renderFormattedText(highlight, "font-bold text-[#C5B097]")}
+          </div>
+
+          {/* Urgency Banner */}
+          {urgency && urgency.show && (
+            <div className="p-8 md:px-12 py-6 avoid-break no-print">
+              <div className={`rounded-xl p-4 ${urgency.message === 'high' ? 'bg-amber-50 border border-amber-200' : 'bg-blue-50 border border-blue-200'}`}>
+                <div className="flex items-start gap-3">
+                  <AlertCircle className={urgency.message === 'high' ? 'text-amber-600' : 'text-blue-600'} size={20} />
+                  <div className="flex-1">
+                    <p className={`text-sm font-semibold ${urgency.message === 'high' ? 'text-amber-900' : 'text-blue-900'}`}>
+                      Peak Season Notice
+                    </p>
+                    <p className={`text-sm mt-1 ${urgency.message === 'high' ? 'text-amber-800' : 'text-blue-800'}`}>
+                      Your travel dates are {urgency.monthsAway} months away. Premium hotels in Cairo and Luxor sell out quickly. Booking now secures availability and current rates.
                     </p>
                   </div>
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-[#C5B097]/5 rounded-full blur-2xl -z-10 group-hover:bg-[#C5B097]/10 transition-all"></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* What's Included Section */}
+          <div className="p-8 md:p-12 border-b border-gray-100 avoid-break">
+            <h2 className="text-2xl md:text-3xl font-serif text-[#2C3E50] mb-8 text-center">
+              Your Investment Includes
+            </h2>
+            
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Included */}
+              <div>
+                <h3 className="font-bold text-[#2C3E50] mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                  <CheckCircle size={18} className="text-[#C5B097]" />
+                  Included
+                </h3>
+                <ul className="space-y-3">
+                  {(data.priceIncludes || []).map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-3 text-sm text-gray-700">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#C5B097] mt-1.5 shrink-0"></div>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                  {(!data.priceIncludes || data.priceIncludes.length === 0) && (
+                    <>
+                      <li className="flex items-start gap-3 text-sm text-gray-700">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#C5B097] mt-1.5 shrink-0"></div>
+                        <span>All accommodations ({formData.duration} nights)</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-gray-700">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#C5B097] mt-1.5 shrink-0"></div>
+                        <span>Private transportation</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-gray-700">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#C5B097] mt-1.5 shrink-0"></div>
+                        <span>Expert guides</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-gray-700">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#C5B097] mt-1.5 shrink-0"></div>
+                        <span>Entrance fees</span>
+                      </li>
+                    </>
+                  )}
+                </ul>
+              </div>
+
+              {/* Not Included */}
+              <div>
+                <h3 className="font-bold text-gray-400 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                  Not Included
+                </h3>
+                <ul className="space-y-3">
+                  {[
+                    'International flights',
+                    'Entry Visa ($25 USD)',
+                    'Lunches & Dinners (unless specified)',
+                    'Gratuities',
+                    'Travel Insurance'
+                  ].map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-3 text-sm text-gray-500">
+                      <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-1.5 shrink-0"></div>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Highlights */}
+          {data.highlights && data.highlights.length > 0 && (
+            <div className="p-8 md:p-12 border-b border-gray-100 avoid-break">
+              <h2 className="text-2xl md:text-3xl font-serif text-[#2C3E50] mb-6 flex items-center gap-3">
+                <Star className="text-[#C5B097]" size={24} /> Trip Highlights
+              </h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                {data.highlights.map((highlight, idx) => (
+                  <div key={idx} className="flex items-start gap-4 p-4 rounded-lg bg-[#F9F9F7] border border-gray-100">
+                    <span className="text-[#C5B097] font-serif font-bold text-lg">{idx + 1}.</span>
+                    <span className="text-gray-700 text-sm leading-relaxed">{renderFormattedText(highlight)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Day by Day Itinerary */}
+          <div className="p-8 md:p-12 border-b border-gray-100 bg-[#FBFBFB]">
+            <h2 className="text-2xl md:text-3xl font-serif text-[#2C3E50] mb-8 flex items-center gap-3">
+              <Calendar className="text-[#C5B097]" size={24} /> Daily Itinerary
+            </h2>
+            
+            <div className="space-y-8 border-l-2 border-[#C5B097]/20 pl-8 ml-3">
+              {data.days.map((day, idx) => (
+                <div key={idx} className="relative avoid-break">
+                  <div className="absolute -left-[43px] top-0 w-8 h-8 rounded-full bg-[#C5B097] text-white flex items-center justify-center font-bold text-sm ring-4 ring-[#FBFBFB]">
+                    {day.day}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-serif text-[#2C3E50] mb-3">{day.title}</h3>
+                    <ul className="space-y-3 mb-4">
+                      {day.activities.map((activity, actIdx) => (
+                        <li key={actIdx} className="flex items-start gap-3 text-gray-700 text-sm">
+                          <div className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></div>
+                          <span className="leading-relaxed">{renderFormattedText(activity)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {day.notes && (
+                      <div className="flex gap-2 items-start text-sm text-gray-500 italic bg-white p-3 rounded border border-gray-100">
+                        <Info size={16} className="shrink-0 mt-0.5" />
+                        <p>{day.notes}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Daily Itinerary */}
-          <div className="px-8 md:px-16 py-12 bg-gradient-to-b from-white to-[#F9F9F7]">
-            <div className="flex items-center gap-3 mb-10">
-              <Calendar className="text-[#C5B097]" size={28} />
-              <h3 className="font-serif text-3xl text-[#2C3E50]">Day-by-Day Itinerary</h3>
-            </div>
-            
-            <div className="relative">
-              {/* Timeline Line */}
-              <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#C5B097] via-[#C5B097]/50 to-transparent hidden md:block"></div>
-              
-              <div className="space-y-8">
-                {(data.days || []).map((day, idx) => (
-                  <div 
-                    key={idx} 
-                    className="relative pl-0 md:pl-16"
-                    style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
-                  >
-                    {/* Day Number Badge */}
-                    <div className="absolute left-0 top-0 w-12 h-12 rounded-full bg-gradient-to-br from-[#C5B097] to-[#B08D55] text-white flex items-center justify-center font-bold text-lg shadow-lg ring-4 ring-white hidden md:flex">
-                      {day.day}
-                    </div>
-
-                    {/* Day Card */}
-                    <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow">
-                      {/* Card Header */}
-                      <div className="bg-gradient-to-r from-[#2C3E50] to-[#34495e] px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <span className="md:hidden w-8 h-8 rounded-full bg-[#C5B097] text-white flex items-center justify-center font-bold text-sm">
-                            {day.day}
-                          </span>
-                          <h4 className="font-serif text-xl font-bold text-white flex-1">{day.title}</h4>
-                        </div>
-                      </div>
-
-                      {/* Card Body */}
-                      <div className="p-6">
-                        <ul className="space-y-3">
-                          {(day.activities || []).map((act, i) => (
-                            <li key={i} className="flex items-start gap-3 text-gray-700">
-                              <div className="flex-shrink-0 w-2 h-2 rounded-full bg-[#C5B097] mt-2"></div>
-                              <span className="flex-1 leading-relaxed">{renderFormattedText(act)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        
-                        {day.notes && (
-                          <div className="mt-5 pt-5 border-t border-gray-100">
-                            <div className="flex gap-3 items-start bg-[#C5B097]/5 rounded-lg p-4">
-                              <Info size={18} className="text-[#C5B097] flex-shrink-0 mt-0.5" />
-                              <p className="text-sm text-gray-600 italic leading-relaxed">
-                                {renderFormattedText(day.notes)}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Micro CTA After Itinerary - No Print */}
-            <div className="mt-12 no-print" data-html2canvas-ignore>
-              <div className="bg-gradient-to-r from-[#C5B097]/10 to-[#B08D55]/10 border border-[#C5B097]/20 rounded-xl p-6 text-center">
-                <p className="text-gray-700 mb-3">
-                  <span className="font-semibold text-[#2C3E50]">Need more time at a specific destination?</span> We can adjust your itinerary to match your pace.
+          {/* Mid-Itinerary CTA */}
+          <div className="p-8 md:p-12 border-b border-gray-100 avoid-break no-print">
+            <div className="bg-[#2C3E50] rounded-2xl p-8 text-center text-white relative overflow-hidden">
+              <div className="relative z-10">
+                <h3 className="text-2xl font-serif mb-3 text-[#C5B097]">
+                  Want to Customize This?
+                </h3>
+                <p className="text-white/80 mb-6 max-w-xl mx-auto">
+                  Add extra days in Luxor, swap beach time for desert adventures, or upgrade accommodations—our specialists make it happen.
                 </p>
                 <button 
-                  onClick={handleEmailClick}
-                  className="inline-flex items-center gap-2 text-[#C5B097] hover:text-[#B08D55] font-medium transition-colors group"
+                  onClick={handleQuoteRequest}
+                  className="bg-[#C5B097] text-white px-8 py-3 rounded-full font-bold hover:bg-[#B5A087] transition-all shadow-lg text-sm uppercase tracking-widest"
                 >
-                  <span>Let's customize this</span>
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  Speak to a Specialist
                 </button>
               </div>
             </div>
           </div>
 
           {/* Accommodations */}
-          <div className="px-8 md:px-16 py-12 bg-white" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-            <div className="flex items-center gap-3 mb-8">
-              <MapPin className="text-[#C5B097]" size={28} />
-              <h3 className="font-serif text-3xl text-[#2C3E50]">Luxury Accommodations</h3>
-            </div>
-            <div className="grid grid-cols-1 gap-6">
-              {(data.accommodationOptions || []).map((hotel, idx) => (
-                <div 
-                  key={idx} 
-                  className="group relative bg-gradient-to-br from-white to-[#F9F9F7] rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden"
-                  style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
-                >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#C5B097]/5 rounded-full blur-3xl -z-10"></div>
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-3">
-                    <h4 className="font-serif font-bold text-xl text-[#2C3E50] flex-1">{hotel.name}</h4>
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-[#C5B097]/10 text-[#C5B097] uppercase tracking-wider font-bold border border-[#C5B097]/20">
-                      {hotel.type}
-                    </span>
+          {data.accommodationOptions && data.accommodationOptions.length > 0 && (
+            <div className="p-8 md:p-12 border-b border-gray-100 avoid-break">
+              <h2 className="text-2xl md:text-3xl font-serif text-[#2C3E50] mb-6 flex items-center gap-3">
+                <MapPin className="text-[#C5B097]" size={24} /> Recommended Stays
+              </h2>
+              <div className="grid gap-6">
+                {data.accommodationOptions.map((acc, idx) => (
+                  <div key={idx} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-2">
+                      <h3 className="text-lg font-bold text-[#2C3E50]">{acc.name}</h3>
+                      <span className="text-xs text-[#C5B097] bg-[#C5B097]/10 px-3 py-1 rounded-full font-bold uppercase tracking-wider w-fit">{acc.type}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 leading-relaxed">{renderFormattedText(acc.description)}</p>
                   </div>
-                  <p className="text-gray-600 leading-relaxed">{renderFormattedText(hotel.description)}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Travel Tips */}
+          {data.travelTips && data.travelTips.length > 0 && (
+            <div className="p-8 md:p-12 border-b border-gray-100 avoid-break">
+              <h2 className="text-2xl md:text-3xl font-serif text-[#2C3E50] mb-6">Expert Tips</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                {data.travelTips.map((tip, idx) => (
+                  <div key={idx} className="flex items-start gap-3 bg-[#F9F9F7] p-4 rounded-lg">
+                    <Shield size={18} className="text-[#C5B097] shrink-0 mt-0.5" />
+                    <span className="text-sm text-gray-700">{renderFormattedText(tip)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Process & CTA Section */}
+          <div className="p-8 md:p-12 bg-[#F9F9F7] avoid-break">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-serif text-[#2C3E50] mb-3">
+                Love This Itinerary?
+              </h2>
+              <p className="text-gray-600 max-w-xl mx-auto text-sm">
+                Every journey is uniquely crafted. Let's discuss your preferences, finalize pricing, 
+                and ensure every detail is perfect.
+              </p>
+            </div>
+            
+            {/* Steps */}
+            <div className="grid md:grid-cols-3 gap-6 mb-10">
+              {[
+                { title: 'Refine', desc: 'Tell us what to adjust' },
+                { title: 'Quote', desc: 'Get final pricing in 24h' },
+                { title: 'Book', desc: 'Secure with a deposit' }
+              ].map((step, i) => (
+                <div key={i} className="text-center">
+                  <div className="w-10 h-10 bg-[#C5B097] text-white rounded-full flex items-center justify-center font-bold mx-auto mb-3">{i+1}</div>
+                  <h4 className="font-bold text-[#2C3E50]">{step.title}</h4>
+                  <p className="text-xs text-gray-500">{step.desc}</p>
                 </div>
               ))}
             </div>
 
-            {/* Micro CTA After Accommodations - No Print */}
-            <div className="mt-8 no-print" data-html2canvas-ignore>
-              <div className="bg-gradient-to-r from-[#C5B097]/10 to-[#B08D55]/10 border border-[#C5B097]/20 rounded-xl p-6 text-center">
-                <p className="text-gray-700 mb-3">
-                  <span className="font-semibold text-[#2C3E50]">Prefer different accommodation options?</span> We work with the finest hotels in Egypt.
-                </p>
-                <button 
-                  onClick={handleEmailClick}
-                  className="inline-flex items-center gap-2 text-[#C5B097] hover:text-[#B08D55] font-medium transition-colors group"
-                >
-                  <span>Explore upgrade options</span>
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-              </div>
+            {/* Bottom CTA Buttons */}
+            <div className="flex flex-col gap-4 max-w-md mx-auto no-print">
+              <button 
+                onClick={handleQuoteRequest}
+                className="w-full bg-[#C5B097] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:bg-[#B5A087] transition-all flex items-center justify-center gap-2"
+              >
+                <Mail size={20} />
+                Get Your Final Quote
+              </button>
+              
+              <button 
+                onClick={handleWhatsAppClick}
+                className="w-full bg-white border-2 border-[#25D366] text-[#25D366] py-3 rounded-full font-bold hover:bg-[#25D366] hover:text-white transition-all flex items-center justify-center gap-2"
+              >
+                <MessageCircle size={20} />
+                Chat on WhatsApp
+              </button>
+              
+              <button 
+                onClick={handleEmailWithPDF}
+                className="w-full bg-transparent text-gray-500 py-2 text-sm hover:text-[#2C3E50] transition-colors flex items-center justify-center gap-2"
+              >
+                <Mail size={16} />
+                Email Me This Itinerary
+              </button>
             </div>
-          </div>
-
-          {/* Main CTA Section - No Print */}
-          <div className="px-8 md:px-16 py-16 bg-gradient-to-br from-[#F9F9F7] to-white no-print" data-html2canvas-ignore>
-            <div className="max-w-3xl mx-auto text-center">
-              {/* Icon */}
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#C5B097]/10 mb-6">
-                <Sparkles className="text-[#C5B097]" size={32} />
-              </div>
-
-              {/* Heading */}
-              <h3 className="font-serif text-3xl md:text-4xl text-[#2C3E50] mb-4">
-                Love This Itinerary?
-              </h3>
-
-              {/* Description */}
-              <p className="text-gray-600 text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-                Every journey is uniquely crafted. Let's discuss your preferences, finalize pricing, and ensure every detail is perfect for your Egyptian adventure.
-              </p>
-
-              {/* Primary & Secondary CTAs */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                <button 
-                  onClick={handleEmailClick}
-                  className="group bg-gradient-to-r from-[#C5B097] to-[#B08D55] text-white px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center gap-3 hover:shadow-xl transition-all hover:scale-105 active:scale-95"
-                >
-                  <Mail size={20} />
-                  <span>Get Your Final Quote</span>
-                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-
-                <button 
-                  onClick={handleWhatsAppClick}
-                  className="group bg-white text-[#2C3E50] px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center gap-3 border-2 border-[#C5B097] hover:bg-[#C5B097]/5 transition-all hover:scale-105 active:scale-95"
-                >
-                  <MessageCircle size={20} />
-                  <span>Chat on WhatsApp</span>
-                </button>
-              </div>
-
-              {/* Contact Information */}
-              <div className="border-t border-[#C5B097]/20 pt-8">
-                <p className="text-sm text-gray-500 mb-4 uppercase tracking-wider font-semibold">Reach Out Directly</p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-gray-700">
-                  <a 
-                    href="mailto:info@mrandmrsegypt.com" 
-                    className="flex items-center gap-2 hover:text-[#C5B097] transition-colors group"
-                  >
-                    <Mail size={18} className="text-[#C5B097]" />
-                    <span className="group-hover:underline">info@mrandmrsegypt.com</span>
-                  </a>
-                  <span className="hidden sm:block text-gray-300">|</span>
-                  <a 
-                    href="tel:+201022106120" 
-                    className="flex items-center gap-2 hover:text-[#C5B097] transition-colors group"
-                  >
-                    <Phone size={18} className="text-[#C5B097]" />
-                    <span className="group-hover:underline">+20 102 210 6120</span>
-                  </a>
-                </div>
-              </div>
-
-              {/* Trust Badges */}
-              <div className="mt-10 pt-8 border-t border-[#C5B097]/20">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-[#C5B097] mb-1">100%</div>
-                    <div className="text-xs text-gray-500 uppercase tracking-wider">Customizable</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-[#C5B097] mb-1">Free</div>
-                    <div className="text-xs text-gray-500 uppercase tracking-wider">Consultation</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-[#C5B097] mb-1">24/7</div>
-                    <div className="text-xs text-gray-500 uppercase tracking-wider">Support</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-[#C5B097] mb-1">No</div>
-                    <div className="text-xs text-gray-500 uppercase tracking-wider">Obligation</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer Section */}
-          <div 
-            className="bg-gradient-to-br from-[#2C3E50] to-[#34495e] text-white px-8 md:px-16 py-12 print:bg-white print:text-black print:border-t print:border-[#C5B097]"
-            style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              {/* Travel Tips */}
-              <div>
-                <h3 className="font-serif text-xl text-[#C5B097] mb-4 flex items-center gap-2">
-                  <Info size={20} />
-                  Essential Information
-                </h3>
-                <ul className="grid grid-cols-1 gap-3">
-                  {(data.travelTips || []).map((tip, idx) => (
-                    <li 
-                      key={idx} 
-                      className="text-sm text-gray-300 print:text-gray-600 flex gap-2 items-start"
-                      style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
-                    >
-                      <span className="text-[#C5B097] mt-1">•</span>
-                      <span className="flex-1">
-                        {renderFormattedText(tip, "font-bold text-white print:text-gray-900")}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Price Includes */}
-              <div>
-                <h3 className="font-serif text-xl text-[#C5B097] mb-4">Investment Includes</h3>
-                <div className="space-y-2">
-                  {(data.priceIncludes || []).length > 0 ? (
-                    (data.priceIncludes || []).map((inc, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm text-white/80 print:text-gray-600">
-                        <CheckCircle2 size={16} className="text-[#C5B097] flex-shrink-0" />
-                        <span>{inc}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <span className="text-sm text-white/50 print:text-gray-400">
-                      Comprehensive package details available upon inquiry
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Bar */}
-            <div className="pt-8 border-t border-white/10 print:border-[#C5B097]/30 flex flex-col md:flex-row justify-between items-center gap-6">
-              {/* Price */}
-              <div className="text-center md:text-left">
-                <p className="text-sm text-[#C5B097] font-medium mb-1 uppercase tracking-wider">Investment Per Person</p>
-                <div className="text-4xl font-serif text-white print:text-[#2C3E50]">
-                  {data.totalEstimatedCost}
-                </div>
-                <p className="text-xs text-white/60 print:text-gray-500 mt-2 italic">
-                  This itinerary is just the beginning. Let's make it yours.
-                </p>
-              </div>
-
-              {/* Logo */}
-              <div>
-                <img 
-                  src={logoUrl} 
-                  alt="Mr & Mrs Egypt" 
-                  className="h-14 w-auto object-contain opacity-80" 
-                  crossOrigin="anonymous" 
-                />
-              </div>
+            
+            <div className="mt-12 pt-8 border-t border-gray-200 flex justify-between items-center opacity-60">
+               <img src={logoUrl} alt="Logo" className="h-8 object-contain" />
+               <p className="text-xs text-gray-400">© 2024 Mr & Mrs Egypt</p>
             </div>
           </div>
 
         </div>
       </div>
-    </div>
+
+      {/* MODALS */}
+      <WhatsAppModal 
+        isOpen={showWhatsAppModal} 
+        onClose={() => setShowWhatsAppModal(false)} 
+        formData={formData} 
+      />
+      <EmailModal 
+        isOpen={showEmailModal} 
+        onClose={() => setShowEmailModal(false)} 
+        formData={formData} 
+        status={emailStatus} 
+        onSubmit={submitEmailRequest} 
+      />
+      <QuoteModal 
+        isOpen={showQuoteModal} 
+        onClose={() => setShowQuoteModal(false)} 
+        formData={formData} 
+        onSubmit={submitQuoteRequest} 
+      />
+    </>
   );
-};
+}
