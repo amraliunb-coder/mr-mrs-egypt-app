@@ -12,14 +12,18 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
     throw new Error("API Key is missing or invalid. Please set GOOGLE_API_KEY or VITE_GOOGLE_API_KEY in environment variables.");
   }
 
+  console.log("API Key present:", apiKey ? `Yes (${apiKey.substring(0, 10)}...)` : "No");
+
   // 2. Initialize Client
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // List of models to try in order of preference (ONLY REAL, WORKING MODELS)
+  // Updated list with currently available models (as of Dec 2024)
   const modelsToTry = [
+    "gemini-1.5-flash-002",
+    "gemini-1.5-pro-002", 
+    "gemini-1.5-flash-8b",
     "gemini-1.5-flash",
-    "gemini-1.5-pro",
-    "gemini-1.0-pro"
+    "gemini-1.5-pro"
   ];
 
   let lastError: any = null;
@@ -365,6 +369,9 @@ Return a strict JSON object matching the requested schema. Ensure all required f
   // If we got here, all models failed
   throw new Error(
     `Failed to generate itinerary with all available models. Last error: ${lastError?.message || "Unknown error"}. ` +
-    `Please verify your API key is valid and has access to Gemini models.`
+    `Please check:\n` +
+    `1. Is your API key valid? Get a new one from https://aistudio.google.com/apikey\n` +
+    `2. Is the Gemini API enabled for your Google Cloud project?\n` +
+    `3. Are you using a Gemini API key (not a different Google service)?`
   );
 };
