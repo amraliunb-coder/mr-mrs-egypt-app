@@ -3,23 +3,32 @@ import { TravelFormData, ItineraryResponse } from "../types";
 
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
   
-  // 1. Get API Key - Works for both Vercel AND local development
+  // 1. Enhanced API Key Validation - Works for both Vercel AND local development
   const apiKey = process.env.GOOGLE_API_KEY || 
                  process.env.VITE_GOOGLE_API_KEY || 
+                 process.env.GEMINI_API_KEY || // Add this common naming convention
                  import.meta.env.VITE_GOOGLE_API_KEY;
 
   if (!apiKey || apiKey.includes("undefined") || apiKey.includes("PASTE_YOUR") || apiKey === "PLACEHOLDER_API_KEY") {
-    throw new Error("API Key is missing or invalid. Please set GOOGLE_API_KEY or VITE_GOOGLE_API_KEY in environment variables.");
+    throw new Error("API Key is missing or invalid. Please set GOOGLE_API_KEY, GEMINI_API_KEY, or VITE_GOOGLE_API_KEY in environment variables.");
   }
 
   console.log("API Key present:", apiKey ? `Yes (${apiKey.substring(0, 10)}...)` : "No");
+  console.log("API Key length:", apiKey.length);
 
-  // 2. Initialize Client
-  const genAI = new GoogleGenerativeAI(apiKey);
+  // 2. Initialize Client with better error handling
+  let genAI: GoogleGenerativeAI;
+  try {
+    genAI = new GoogleGenerativeAI(apiKey);
+  } catch (error) {
+    throw new Error(`Failed to initialize GoogleGenerativeAI client: ${error instanceof Error ? error.message : String(error)}`);
+  }
   
-  // ONLY use models that work with FREE tier and are universally available
+  // 3. Use CURRENT models (gemini-pro is deprecated as of April 2025)
   const modelsToTry = [
-    "gemini-pro"  // The most stable, widely available model
+    "gemini-2.0-flash",      // Most stable, widely available
+    "gemini-2.5-flash",      // Newer version
+    "gemini-1.5-flash"       // Fallback (still available for some accounts)
   ];
 
   let lastError: any = null;
@@ -32,7 +41,7 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
     try {
       console.log(`Attempting to use model: ${modelName}`);
       
-      // 3. Configure Model
+      // 4. Configure Model with enhanced error handling
       const model = genAI.getGenerativeModel({
         model: modelName,
         generationConfig: {
@@ -112,7 +121,7 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
         }
       });
 
-      // 4. Enhanced Prompt with All Requirements
+      // 5. Enhanced Prompt with All Requirements
       const prompt = `
 You are a senior luxury travel consultant for "Mr & Mrs Egypt". 
 Create a complete, detailed ${formData.duration}-day itinerary for a client.
@@ -330,44 +339,109 @@ REQUIREMENTS:
 Return a strict JSON object matching the requested schema. Ensure all required fields are present and properly formatted.
       `;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      
-      if (!text) {
-        throw new Error("No response from AI");
+      // 6. Enhanced API call with better error handling
+      let result;
+      try {
+        result = await model.generateContent(prompt);
+      } catch (apiError: any) {
+        console.error(`API Error with model ${modelName}:`, apiError);
+        
+        // Enhanced error handling for different error types
+        if (apiError?.message?.includes("API key not valid")) {
+          throw new Error("Invalid API key. Please check your Gemini API key in Vercel environment variables.");
+        }
+        if (apiError?.message?.includes("404") || apiError?.message?.includes("not found")) {
+          console.log(`Model ${modelName} not found, trying next model...`);
+          continue;
+        }
+        if (apiError?.message?.includes("429") || apiError?.message?.includes("quota")) {
+          console.log("Rate limit hit. Waiting 10 seconds before trying next model...");
+          await delay(10000);
+          continue;
+        }
+        if (apiError?.message?.includes("400")) {
+          throw new Error(`Bad request error: ${apiError.message}. This might indicate an issue with the prompt or model configuration.`);
+        }
+        
+        // For other errors, continue to next model
+        lastError = apiError;
+        continue;
       }
       
-      console.log(`Success with model: ${modelName}`);
-      return JSON.parse(text) as ItineraryResponse;
+      // 7. Enhanced response handling
+      let responseText: string;
+      try {
+        const response = await result.response;
+        responseText = response.text();
+      } catch (responseError: any) {
+        console.error(`Response parsing error with model ${modelName}:`, responseError);
+        lastError = responseError;
+        continue;
+      }
+      
+      if (!responseText) {
+        console.log(`Empty response from model ${modelName}, trying next model...`);
+        continue;
+      }
+      
+      // 8. Enhanced JSON parsing with error handling
+      try {
+        console.log(`Success with model: ${modelName}`);
+        console.log("Response length:", responseText.length);
+        
+        // Log first 200 characters for debugging
+        console.log("Response preview:", responseText.substring(0, 200));
+        
+        const parsedResponse = JSON.parse(responseText) as ItineraryResponse;
+        
+        // Validate required fields
+        const requiredFields = ["tripTitle", "greeting", "summary", "totalEstimatedCost", "priceIncludes", "highlights", "days", "accommodationOptions", "travelTips"];
+        const missingFields = requiredFields.filter(field => !parsedResponse[field as keyof ItineraryResponse]);
+        
+        if (missingFields.length > 0) {
+          throw new Error(`Missing required fields in response: ${missingFields.join(", ")}`);
+        }
+        
+        return parsedResponse;
+        
+      } catch (parseError: any) {
+        console.error(`JSON parsing error with model ${modelName}:`, parseError);
+        
+        // If it's a JSON parsing error, try to extract JSON from the response
+        try {
+          // Look for JSON content between curly braces
+          const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const extractedJson = JSON.parse(jsonMatch[0]);
+            console.log(`Successfully extracted JSON from model ${modelName} response`);
+            return extractedJson as ItineraryResponse;
+          }
+        } catch (extractionError) {
+          console.log(`Failed to extract JSON from model ${modelName} response`);
+        }
+        
+        lastError = parseError;
+        continue;
+      }
 
     } catch (error: any) {
       console.error(`Error with model ${modelName}:`, error?.message || error);
       lastError = error;
       
-      // Check if it's a rate limit error (429)
-      if (error?.message?.includes("429") || error?.message?.includes("quota")) {
-        console.log("Rate limit hit. Waiting 10 seconds before trying next model...");
-        await delay(10000);
-        continue;
-      }
-      
-      // If it's not a 404 or rate limit error, don't try other models
-      if (!error?.message?.includes("404") && !error?.message?.includes("not found")) {
-        throw error;
-      }
-      
-      // Continue to next model if this one failed with 404
+      // Continue to next model for most errors
       continue;
     }
   }
 
   // If we got here, all models failed
   throw new Error(
-    `Failed to generate itinerary with all available models. Last error: ${lastError?.message || "Unknown error"}. ` +
-    `Please check:\n` +
-    `1. Is your API key valid? Get a new one from https://aistudio.google.com/apikey\n` +
-    `2. Is the Gemini API enabled for your Google Cloud project?\n` +
-    `3. Are you using a Gemini API key (not a different Google service)?`
+    `Failed to generate itinerary with all available models. Last error: ${lastError?.message || "Unknown error"}. \n\n` +
+    `Troubleshooting steps:\n` +
+    `1. Verify your API key is valid and active at https://aistudio.google.com/apikey\n` +
+    `2. Ensure the Gemini API is enabled for your Google Cloud project\n` +
+    `3. Check Vercel environment variables: GOOGLE_API_KEY, GEMINI_API_KEY, or VITE_GOOGLE_API_KEY\n` +
+    `4. Try using a different Gemini API key\n` +
+    `5. Check if you've exceeded your API quota\n` +
+    `6. Ensure your Google Cloud project has billing enabled (if using paid tier)`
   );
 };
