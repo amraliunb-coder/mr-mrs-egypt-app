@@ -3,26 +3,28 @@ import { TravelFormData, ItineraryResponse } from "../types";
 
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
   
-  // 1. Get API Key from Vercel Environment Variables
-  const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+  // 1. Get API Key from Environment Variables (works for both Vercel and local dev)
+  const apiKey = process.env.GOOGLE_API_KEY || 
+                 process.env.VITE_GOOGLE_API_KEY || 
+                 import.meta.env.VITE_GOOGLE_API_KEY;
 
   if (!apiKey || apiKey.includes("undefined") || apiKey.includes("PASTE_YOUR") || apiKey === "PLACEHOLDER_API_KEY") {
-    throw new Error("API Key is missing or invalid. Please set VITE_GOOGLE_API_KEY in Vercel environment variables.");
+    throw new Error("API Key is missing or invalid. Please set GOOGLE_API_KEY or VITE_GOOGLE_API_KEY in environment variables.");
   }
 
   // 2. Initialize Client
   const genAI = new GoogleGenerativeAI(apiKey);
 
-// List of models to try in order of preference
-const modelsToTry = [
-  "gemini-1.5-flash-latest",
-  "gemini-1.5-pro-latest",
-  "gemini-1.5-flash-002",
-  "gemini-1.5-pro-002",
-  "gemini-1.5-flash",
-  "gemini-1.5-pro",
-  "gemini-1.0-pro"
-];
+  // List of models to try in order of preference
+  const modelsToTry = [
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-pro-latest",
+    "gemini-1.5-flash-002",
+    "gemini-1.5-pro-002",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
+    "gemini-1.0-pro"
+  ];
 
   let lastError: any = null;
 
