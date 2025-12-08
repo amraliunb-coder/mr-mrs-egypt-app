@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { generateItineraryPreview } from './services/geminiService';
 import { TravelFormData, AppStatus, ItineraryResponse } from './types';
@@ -39,8 +38,8 @@ const INITIAL_DATA: TravelFormData = {
 
 // Wizard Background
 const WIZARD_BG = "https://images.unsplash.com/photo-1539650116455-251d93d5ce3d?q=80&w=2000&auto=format&fit=crop";
-// Placeholder logo - Updated text color query to match dark slate
-const LOGO_URL = "https://placehold.co/400x120/transparent/2C3E50?text=MR+%26+MRS+EGYPT&font=playfair-display";
+// Updated Company Logo
+const LOGO_URL = "https://res.cloudinary.com/drzid08rg/image/upload/colored-logo_tjemee.png";
 
 export default function App() {
   const [step, setStep] = useState(0);
@@ -447,7 +446,8 @@ export default function App() {
   // If we have a generated itinerary, show the full view (overlaying everything)
   if (status === AppStatus.SUCCESS && itinerary) {
     return (
-      <div className="bg-[#F9F9F7] min-h-screen">
+      // Added min-h-screen and explicit background to prevent black gaps
+      <div className="bg-[#F9F9F7] min-h-screen w-full relative">
         <header className="fixed top-0 left-0 w-full z-50 p-6 flex justify-between items-center print:hidden bg-[#F9F9F7]/90 backdrop-blur-md shadow-sm">
            <img 
               src={LOGO_URL} 
@@ -456,7 +456,7 @@ export default function App() {
             />
         </header>
         {/* Increased padding-top to pt-48 to ensure content isn't hidden under header */}
-        <main className="pt-48 p-4 md:p-8">
+        <main className="pt-48 p-4 md:p-8 w-full">
           <ItineraryDisplay 
             data={itinerary} 
             formData={formData} 
