@@ -14,10 +14,12 @@ import {
   Clock,
   Shield,
   Heart,
-  Info
+  Info,
+  FileText
 } from 'lucide-react';
 import { TravelFormData, ItineraryResponse } from '../types';
 import { WhatsAppModal, QuoteModal, EmailModal } from './Modals';
+import { PDFGenerationModal } from './PDFGenerationModal';
 
 interface ItineraryDisplayProps {
   data: ItineraryResponse;
@@ -30,8 +32,9 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showPDFModal, setShowPDFModal] = useState(false);
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isPDFMode, setIsPDFMode] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   // Calculate booking urgency
@@ -96,139 +99,159 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
     }, 1500);
   };
 
-  // Enhanced PDF Download Handler
-  const handleDownloadPDF = async () => {
-    if (isDownloading) return;
-    
-    setIsDownloading(true);
-    
+  // NEW: Travel-fy style PDF Generation Trigger
+  const handleDownloadPDF = () => {
+    setShowPDFModal(true);
+  };
+
+  // -----------------------------------------------------------
+  // ROBUST PDF GENERATION LOGIC
+  // -----------------------------------------------------------
+
+  const generatePDF = async () => {
+    if (!printRef.current) throw new Error('PDF content not found');
+  
     try {
-      if (typeof window !== 'undefined' && (window as any).html2pdf && printRef.current) {
-        const element = printRef.current;
-        
-        // Add print-specific styles
-        const style = document.createElement('style');
-        style.textContent = `
-          @media print {
-            @page {
-              size: A4;
-              margin: 0.5in;
-            }
-            
-            .print-container {
-              font-size: 12pt !important;
-              line-height: 1.4 !important;
-            }
-            
-            .print-container h1 { font-size: 24pt !important; }
-            .print-container h2 { font-size: 18pt !important; }
-            .print-container h3 { font-size: 14pt !important; }
-            
-            .avoid-break { page-break-inside: avoid !important; }
-            .page-break { page-break-before: always !important; }
-            .page-break-after { page-break-after: always !important; }
-            
-            .no-print { display: none !important; }
-            
-            .print-border { border-color: #000 !important; }
-            .print-text-dark { color: #000 !important; }
-          }
-        `;
-        document.head.appendChild(style);
+      console.log('=== Starting PDF Generation ===');
+      
+      // Enable PDF mode for better styling
+      setIsPDFMode(true);
+      
+      // Wait longer for styles to apply and layout to stabilize (500ms)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const element = printRef.current;
+      
+      console.log('Element dimensions:', element.scrollWidth, 'x', element.scrollHeight);
+  
+      // Strategy 1: Enhanced html2pdf with proper configuration
+      if (typeof window !== 'undefined' && (window as any).html2pdf) {
         
         const opt = {
-          margin: [0.5, 0.5, 0.5, 0.5], // top, right, bottom, left
+          margin: [0.3, 0.4, 0.3, 0.4], // Balanced margins
           filename: `Egypt-Itinerary-${formData.name.replace(/\s+/g, '-')}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
           html2canvas: { 
-            scale: 1.5, // Reduced scale for better performance
+            scale: 1.5, // slightly higher scale for crisp text
             useCORS: true,
             logging: false,
             letterRendering: true,
-            width: 794, // A4 width in pixels at 96 DPI
-            height: 1123, // A4 height in pixels at 96 DPI
-            windowWidth: 794,
-            windowHeight: 1123
+            allowTaint: true,
+            backgroundColor: '#ffffff', // FORCE WHITE BACKGROUND
+            width: element.scrollWidth,
+            height: element.scrollHeight,
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: element.scrollWidth + 50,
+            windowHeight: element.scrollHeight + 50,
+            removeContainer: false
           },
           jsPDF: { 
-            unit: 'pt', // Points for better precision
+            unit: 'in',
             format: 'a4', 
             orientation: 'portrait',
             compress: true,
-            putOnlyUsedFonts: true,
-            floatPrecision: 16
+            putOnlyUsedFonts: true
           },
           pagebreak: { 
             mode: ['avoid-all', 'css', 'legacy'],
-            before: '.page-break',
+            before: '.page-break-before',
             after: '.page-break-after',
             avoid: '.avoid-break'
           }
         };
         
-        // Add page break elements strategically
-        const addPageBreaks = () => {
-          // Add page breaks before major sections
-          const sections = element.querySelectorAll('.avoid-break');
-          sections.forEach((section, index) => {
-            if (index > 0 && index % 2 === 0) { // Add page break every 2 sections
-              section.classList.add('page-break');
-            }
-          });
-        };
+        console.log('Generating PDF with options:', opt);
         
-        addPageBreaks();
+        // Method 1: Using the promise-based approach
+        const worker = (window as any).html2pdf().set(opt).from(element);
         
-        await (window as any).html2pdf()
-          .set(opt)
-          .from(element)
-          .save()
-          .finally(() => {
-            // Clean up
-            document.head.removeChild(style);
-            // Remove temporary page break classes
-            element.querySelectorAll('.page-break').forEach(el => {
-              el.classList.remove('page-break');
-            });
-          });
-          
+        // Ensure proper save
+        const pdfBlob = await worker.outputPdf('blob');
+        
+        if (pdfBlob.size > 1000) { // Valid PDF size check
+          const url = URL.createObjectURL(pdfBlob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = opt.filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          console.log('PDF downloaded successfully');
+        } else {
+          throw new Error('Generated PDF is too small - likely empty');
+        }
       } else {
-        // Enhanced fallback to browser print
-        const printStyles = document.createElement('style');
-        printStyles.textContent = `
-          @media print {
-            body * { visibility: hidden; }
-            #itinerary-pdf-content, #itinerary-pdf-content * { visibility: visible; }
-            #itinerary-pdf-content { position: absolute; left: 0; top: 0; width: 100%; }
-            .no-print { display: none !important; }
-            @page { margin: 0.5in; size: A4; }
-          }
-        `;
-        document.head.appendChild(printStyles);
-        
-        window.print();
-        
-        setTimeout(() => {
-          document.head.removeChild(printStyles);
-        }, 1000);
+        throw new Error('html2pdf library not available');
       }
+      
     } catch (error) {
-      console.error('PDF generation failed:', error);
-      alert('PDF generation failed. Please try using the print function (Ctrl+P / Cmd+P)');
+      console.error('PDF Generation Error:', error);
+      console.log('Trying fallback method...');
+      await generatePDFWithDirectCanvas();
     } finally {
-      setIsDownloading(false);
+      setIsPDFMode(false);
     }
+  };
+  
+  // Fallback method using direct canvas approach
+  const generatePDFWithDirectCanvas = async () => {
+    const element = printRef.current;
+    if (!element) throw new Error('Element not found');
+  
+    const html2canvas = (window as any).html2canvas;
+    const jsPDF = (window as any).jsPDF;
+    
+    if (!html2canvas || !jsPDF) {
+      throw new Error('Required libraries not available');
+    }
+  
+    // Create canvas
+    const canvas = await html2canvas(element, {
+      scale: 1.5,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      width: element.scrollWidth,
+      height: element.scrollHeight
+    });
+  
+    // Create PDF
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    
+    // Calculate image dimensions
+    const imgWidth = pdfWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    
+    // Simple fit strategy for fallback:
+    let heightLeft = imgHeight;
+    let position = 0;
+    
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pdfHeight;
+
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+    }
+    
+    const filename = `Egypt-Itinerary-${formData.name.replace(/\s+/g, '-')}.pdf`;
+    pdf.save(filename);
   };
 
   const handleEmailWithPDF = async () => {
-    await handleDownloadPDF();
-    
+    await generatePDF();
     setTimeout(() => {
       alert("Please attach the downloaded PDF to the email that will open next.");
-      
       const subject = encodeURIComponent(`Itinerary Inquiry - ${formData.name} - ${formData.duration} Days`);
       const bodyContent = `Hello,\n\nI would like to discuss and finalize my personalized Egypt itinerary.\n\nTRAVELER DETAILS:\nName: ${formData.name}\nDuration: ${formData.duration} days\nStart Date: ${formData.startDate}\nGroup Size: ${formData.groupSize}\n\n(I have attached the generated PDF itinerary)`;
-      
       window.location.href = `mailto:info@mrandmrsegypt.com?subject=${subject}&body=${encodeURIComponent(bodyContent)}`;
     }, 1500);
   };
@@ -239,7 +262,6 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
     const start = new Date(formData.startDate);
     const end = new Date(start);
     end.setDate(end.getDate() + parseInt(formData.duration));
-    
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
     return `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
   };
@@ -247,7 +269,6 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
   const renderFormattedText = (text: string) => {
     if (!text) return null;
     const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
-    
     return (
       <span>
         {parts.map((part, index) => {
@@ -264,7 +285,7 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
   return (
     <>
       {/* Sticky Mobile CTA */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-gray-200 p-4 shadow-2xl no-print">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-gray-200 p-4 shadow-2xl no-print">
         <button 
           onClick={handleQuoteRequest}
           className="w-full bg-[#C5B097] text-white py-4 rounded-full font-bold shadow-lg hover:bg-[#B5A087] transition-all flex items-center justify-center gap-2"
@@ -275,7 +296,7 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
       </div>
 
       {/* Floating Desktop CTA */}
-      <div className="hidden md:block fixed right-8 top-1/2 -translate-y-1/2 z-50 space-y-3 no-print">
+      <div className="hidden md:block fixed right-8 top-1/2 -translate-y-1/2 z-40 space-y-3 no-print">
         <button 
           onClick={handleQuoteRequest}
           className="bg-[#C5B097] text-white px-6 py-4 rounded-full shadow-xl hover:scale-105 hover:shadow-2xl transition-all flex items-center gap-2 font-bold"
@@ -303,68 +324,183 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
             <RefreshCw size={18} />
             <span className="hidden md:inline">Start Over</span>
           </button>
+          
           <button 
             onClick={handleDownloadPDF}
-            disabled={isDownloading}
-            className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-gradient-to-r from-[#C5B097] to-[#D5C0A7] text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all"
           >
-            <Download size={18} />
-            <span className="hidden md:inline">
-              {isDownloading ? 'Generating PDF...' : 'Download PDF'}
-            </span>
+            <FileText size={20} />
+            <span className="hidden md:inline">Generate PDF</span>
+            <span className="md:hidden">PDF</span>
           </button>
         </div>
 
-        {/* PDF Container */}
-        <div ref={printRef} id="itinerary-pdf-content" className="print-container bg-white rounded-2xl shadow-xl overflow-hidden text-[#2C3E50]">
+        {/* PDF Container - Main Wrapper */}
+        <div 
+          ref={printRef} 
+          id="itinerary-pdf-content" 
+          // REMOVED shadow-xl to fix black background artifact
+          className={`bg-white text-[#2C3E50] ${isPDFMode ? 'pdf-generation-active' : 'rounded-2xl shadow-sm border border-gray-200 print-container'}`}
+          style={isPDFMode ? {
+            width: '210mm',
+            minHeight: '297mm',
+            margin: '0 auto',
+            boxShadow: 'none',
+            overflow: 'visible',
+            backgroundColor: '#ffffff'
+          } : {
+            maxWidth: '210mm',
+            margin: '0 auto',
+            background: 'white'
+          }}
+        >
+          <div className="pdf-content-wrapper" style={{ padding: isPDFMode ? '0px' : '0', backgroundColor: '#ffffff' }}>
           
-          {/* Hero Header */}
-          <div className="relative bg-gradient-to-br from-[#2C3E50] to-[#34495E] text-white p-8 md:p-12 print-text-dark">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#C5B097]/10 rounded-full blur-3xl"></div>
+          {/* Hero Header - Enhanced with Cinematic Background */}
+          <div 
+            data-section="hero-header" 
+            className={`relative p-8 md:p-12 page-break-after overflow-hidden ${isPDFMode ? 'text-[#2C3E50]' : 'text-white'}`}
+            style={{
+              // Use background image for display, but fallback to simple/none for PDF to avoid issues
+              backgroundImage: isPDFMode ? 'none' : 'url("https://res.cloudinary.com/drzid08rg/image/upload/q_auto,f_auto/v1764881983/asset-453083520749600768_dbxoap.jpg")',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          >
+            {/* Overlays - Hide in PDF mode */}
+            {!isPDFMode && (
+              <>
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#2C3E50]/90 via-[#2C3E50]/40 to-transparent"></div>
+              </>
+            )}
+            
             <div className="relative z-10">
-              <img src={logoUrl} alt="Mr & Mrs Egypt" className="h-16 md:h-20 mb-6 object-contain" />
-              <h1 className="text-3xl md:text-5xl font-serif mb-3 leading-tight">{data.tripTitle}</h1>
-              <p className="text-xl md:text-2xl text-white/90 mb-6 font-script">Prepared for {formData.name}</p>
+              {/* Logo: Displayed as is (colored) */}
+              <img 
+                src={logoUrl} 
+                alt="Mr & Mrs Egypt" 
+                className="h-16 md:h-20 mb-8 object-contain drop-shadow-sm transition-all" 
+              />
               
-              {/* Trip Details Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-white/10 print-border">
-                <div className="flex items-center gap-3">
-                  <Calendar size={20} className="text-[#C5B097]" />
-                  <div>
-                    <div className="text-xs text-white/60 uppercase tracking-wider">Dates</div>
-                    <div className="text-sm font-semibold">{formatDateRange()}</div>
+              <h1 className={`text-3xl md:text-5xl font-serif mb-4 leading-tight tracking-tight drop-shadow-md ${isPDFMode ? 'text-[#2C3E50]' : 'text-white'}`}>
+                {data.tripTitle}
+              </h1>
+              
+              <p className={`text-xl md:text-2xl mb-8 font-script ${isPDFMode ? 'text-[#C5B097]' : 'text-[#D4AF37]'} drop-shadow-sm`}>
+                Curated exclusively for {formData.name}
+              </p>
+              
+              {/* Enhanced Trip Details Grid with Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-10">
+                {/* Card 1 */}
+                <div className={`backdrop-blur-sm rounded-xl p-4 border shadow-sm transition-shadow ${
+                    isPDFMode 
+                      ? 'bg-white border-[#C5B097]/10' 
+                      : 'bg-white/10 border-white/20 hover:bg-white/20'
+                  }`}>
+                  <div className="flex flex-col items-start gap-2">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      isPDFMode ? 'bg-[#C5B097]/10' : 'bg-white/10'
+                    }`}>
+                      <Calendar size={20} className={isPDFMode ? 'text-[#C5B097]' : 'text-[#C5B097]'} />
+                    </div>
+                    <div>
+                      <div className={`text-[10px] md:text-xs uppercase tracking-wider font-medium ${
+                        isPDFMode ? 'text-gray-500' : 'text-white/70'
+                      }`}>Travel Dates</div>
+                      <div className={`text-xs md:text-sm font-bold mt-0.5 ${
+                        isPDFMode ? 'text-[#2C3E50]' : 'text-white'
+                      }`}>{formatDateRange()}</div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Clock size={20} className="text-[#C5B097]" />
-                  <div>
-                    <div className="text-xs text-white/60 uppercase tracking-wider">Duration</div>
-                    <div className="text-sm font-semibold">{formData.duration} Days</div>
+
+                {/* Card 2 */}
+                <div className={`backdrop-blur-sm rounded-xl p-4 border shadow-sm transition-shadow ${
+                    isPDFMode 
+                      ? 'bg-white border-[#C5B097]/10' 
+                      : 'bg-white/10 border-white/20 hover:bg-white/20'
+                  }`}>
+                  <div className="flex flex-col items-start gap-2">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      isPDFMode ? 'bg-[#C5B097]/10' : 'bg-white/10'
+                    }`}>
+                      <Clock size={20} className={isPDFMode ? 'text-[#C5B097]' : 'text-[#C5B097]'} />
+                    </div>
+                    <div>
+                      <div className={`text-[10px] md:text-xs uppercase tracking-wider font-medium ${
+                        isPDFMode ? 'text-gray-500' : 'text-white/70'
+                      }`}>Duration</div>
+                      <div className={`text-xs md:text-sm font-bold mt-0.5 ${
+                        isPDFMode ? 'text-[#2C3E50]' : 'text-white'
+                      }`}>{formData.duration} Days</div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Users size={20} className="text-[#C5B097]" />
-                  <div>
-                    <div className="text-xs text-white/60 uppercase tracking-wider">Travelers</div>
-                    <div className="text-sm font-semibold">{formData.groupSize} Guests</div>
+
+                {/* Card 3 */}
+                <div className={`backdrop-blur-sm rounded-xl p-4 border shadow-sm transition-shadow ${
+                    isPDFMode 
+                      ? 'bg-white border-[#C5B097]/10' 
+                      : 'bg-white/10 border-white/20 hover:bg-white/20'
+                  }`}>
+                  <div className="flex flex-col items-start gap-2">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      isPDFMode ? 'bg-[#C5B097]/10' : 'bg-white/10'
+                    }`}>
+                      <Users size={20} className={isPDFMode ? 'text-[#C5B097]' : 'text-[#C5B097]'} />
+                    </div>
+                    <div>
+                      <div className={`text-[10px] md:text-xs uppercase tracking-wider font-medium ${
+                        isPDFMode ? 'text-gray-500' : 'text-white/70'
+                      }`}>Party Size</div>
+                      <div className={`text-xs md:text-sm font-bold mt-0.5 ${
+                        isPDFMode ? 'text-[#2C3E50]' : 'text-white'
+                      }`}>{formData.groupSize} Guests</div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Heart size={20} className="text-[#C5B097]" />
-                  <div>
-                    <div className="text-xs text-white/60 uppercase tracking-wider">Style</div>
-                    <div className="text-sm font-semibold">{formData.tripType}</div>
+
+                {/* Card 4 */}
+                <div className={`backdrop-blur-sm rounded-xl p-4 border shadow-sm transition-shadow ${
+                    isPDFMode 
+                      ? 'bg-white border-[#C5B097]/10' 
+                      : 'bg-white/10 border-white/20 hover:bg-white/20'
+                  }`}>
+                  <div className="flex flex-col items-start gap-2">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      isPDFMode ? 'bg-[#C5B097]/10' : 'bg-white/10'
+                    }`}>
+                      <Heart size={20} className={isPDFMode ? 'text-[#C5B097]' : 'text-[#C5B097]'} />
+                    </div>
+                    <div>
+                      <div className={`text-[10px] md:text-xs uppercase tracking-wider font-medium ${
+                        isPDFMode ? 'text-gray-500' : 'text-white/70'
+                      }`}>Experience</div>
+                      <div className={`text-xs md:text-sm font-bold mt-0.5 ${
+                        isPDFMode ? 'text-[#2C3E50]' : 'text-white'
+                      }`}>{formData.tripType}</div>
+                    </div>
                   </div>
                 </div>
+
               </div>
             </div>
           </div>
 
-          {/* Summary Section */}
-          <div className="p-8 md:p-12 border-b border-gray-100 avoid-break">
-            <h2 className="text-2xl font-serif text-[#C5B097] mb-4">Your Journey Begins</h2>
-            <p className="text-lg text-gray-700 leading-relaxed mb-8 italic">"{data.greeting}"</p>
-            <p className="text-gray-600 leading-relaxed mb-8">{data.summary}</p>
+          {/* Summary Section - ADDED BG-WHITE AND FIXED SPACING */}
+          <div data-section="summary-section" className="p-8 md:p-12 border-b border-gray-100 avoid-break bg-white">
+            <h2 className="text-2xl font-serif text-[#C5B097] mb-6 pt-2">Your Journey Begins</h2>
+            
+            {/* Added padding-bottom instead of margin-bottom for text to prevent collapse */}
+            <div className="pb-8">
+              <p className="text-lg text-gray-700 leading-relaxed italic">"{data.greeting}"</p>
+            </div>
+            
+            <div className="pb-8">
+              <p className="text-gray-600 leading-relaxed">{data.summary}</p>
+            </div>
             
             {/* Budget Display */}
             <div className="bg-[#F9F9F7] rounded-xl p-6 border border-[#C5B097]/20 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -381,7 +517,7 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
 
           {/* Urgency Banner */}
           {urgency && urgency.show && (
-            <div className="p-8 md:px-12 py-6 avoid-break no-print">
+            <div className="p-8 md:px-12 py-6 avoid-break no-print bg-white">
               <div className={`rounded-xl p-4 ${urgency.message === 'high' ? 'bg-amber-50 border border-amber-200' : 'bg-blue-50 border border-blue-200'}`}>
                 <div className="flex items-start gap-3">
                   <AlertCircle className={urgency.message === 'high' ? 'text-amber-600' : 'text-blue-600'} size={20} />
@@ -399,7 +535,7 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
           )}
 
           {/* What's Included Section */}
-          <div className="p-8 md:p-12 border-b border-gray-100 avoid-break">
+          <div data-section="included-section" className="p-8 md:p-12 border-b border-gray-100 avoid-break page-break-before bg-white">
             <h2 className="text-2xl md:text-3xl font-serif text-[#2C3E50] mb-8 text-center">
               Your Investment Includes
             </h2>
@@ -468,7 +604,7 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
 
           {/* Highlights */}
           {data.highlights && data.highlights.length > 0 && (
-            <div className="p-8 md:p-12 border-b border-gray-100 avoid-break">
+            <div data-section="highlights-section" className="p-8 md:p-12 border-b border-gray-100 avoid-break page-break-before bg-white">
               <h2 className="text-2xl md:text-3xl font-serif text-[#2C3E50] mb-6 flex items-center gap-3">
                 <Star className="text-[#C5B097]" size={24} /> Trip Highlights
               </h2>
@@ -484,14 +620,14 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
           )}
 
           {/* Day by Day Itinerary */}
-          <div className="p-8 md:p-12 border-b border-gray-100 bg-[#FBFBFB]">
+          <div data-section="itinerary-section" className="p-8 md:p-12 border-b border-gray-100 bg-[#FBFBFB] page-break-before">
             <h2 className="text-2xl md:text-3xl font-serif text-[#2C3E50] mb-8 flex items-center gap-3">
               <Calendar className="text-[#C5B097]" size={24} /> Daily Itinerary
             </h2>
             
             <div className="space-y-8 border-l-2 border-[#C5B097]/20 pl-8 ml-3">
               {data.days.map((day, idx) => (
-                <div key={idx} className="relative avoid-break">
+                <div key={idx} className="relative avoid-break day-item">
                   <div className="absolute -left-[43px] top-0 w-8 h-8 rounded-full bg-[#C5B097] text-white flex items-center justify-center font-bold text-sm ring-4 ring-[#FBFBFB]">
                     {day.day}
                   </div>
@@ -517,8 +653,33 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
             </div>
           </div>
 
-          {/* Mid-Itinerary CTA */}
-          <div className="p-8 md:p-12 border-b border-gray-100 avoid-break no-print">
+          {/* Generate PDF CTA - Travel-fy Style - HIDDEN IN PDF */}
+          <div className="p-8 md:p-12 border-b border-gray-100 avoid-break no-print bg-white">
+            <div className="bg-gradient-to-br from-[#2C3E50] to-[#34495E] rounded-2xl p-8 text-center text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#C5B097]/10 rounded-full blur-2xl"></div>
+              <div className="relative z-10">
+                <div className="w-16 h-16 bg-[#C5B097]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText size={32} className="text-[#C5B097]" />
+                </div>
+                <h3 className="text-2xl font-serif mb-3 text-[#C5B097]">
+                  Save Your Itinerary
+                </h3>
+                <p className="text-white/80 mb-6 max-w-xl mx-auto">
+                  Get a beautifully designed PDF of your complete Egypt itinerary to share, print, or reference later.
+                </p>
+                <button 
+                  onClick={handleDownloadPDF}
+                  className="bg-[#C5B097] text-white px-8 py-4 rounded-xl font-bold hover:bg-[#B5A087] transition-all shadow-lg text-base flex items-center justify-center gap-2 mx-auto"
+                >
+                  <FileText size={20} />
+                  Generate PDF Itinerary
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Mid-Itinerary CTA - HIDDEN IN PDF */}
+          <div className="p-8 md:p-12 border-b border-gray-100 avoid-break no-print bg-white">
             <div className="bg-[#2C3E50] rounded-2xl p-8 text-center text-white relative overflow-hidden">
               <div className="relative z-10">
                 <h3 className="text-2xl font-serif mb-3 text-[#C5B097]">
@@ -539,7 +700,7 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
 
           {/* Accommodations */}
           {data.accommodationOptions && data.accommodationOptions.length > 0 && (
-            <div className="p-8 md:p-12 border-b border-gray-100 avoid-break">
+            <div data-section="accommodation-section" className="p-8 md:p-12 border-b border-gray-100 avoid-break page-break-before bg-white">
               <h2 className="text-2xl md:text-3xl font-serif text-[#2C3E50] mb-6 flex items-center gap-3">
                 <MapPin className="text-[#C5B097]" size={24} /> Recommended Stays
               </h2>
@@ -559,7 +720,7 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
 
           {/* Travel Tips */}
           {data.travelTips && data.travelTips.length > 0 && (
-            <div className="p-8 md:p-12 border-b border-gray-100 avoid-break">
+            <div data-section="tips-section" className="p-8 md:p-12 border-b border-gray-100 avoid-break page-break-before bg-white">
               <h2 className="text-2xl md:text-3xl font-serif text-[#2C3E50] mb-6">Expert Tips</h2>
               <div className="grid md:grid-cols-2 gap-4">
                 {data.travelTips.map((tip, idx) => (
@@ -632,6 +793,7 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
             </div>
           </div>
 
+          </div>
         </div>
       </div>
 
@@ -653,6 +815,13 @@ export function ItineraryDisplay({ data, formData, logoUrl, onReset }: Itinerary
         onClose={() => setShowQuoteModal(false)} 
         formData={formData} 
         onSubmit={submitQuoteRequest} 
+      />
+      <PDFGenerationModal
+        isOpen={showPDFModal}
+        onClose={() => setShowPDFModal(false)}
+        onGenerate={generatePDF}
+        travelerName={formData.name}
+        tripTitle={data.tripTitle}
       />
     </>
   );
