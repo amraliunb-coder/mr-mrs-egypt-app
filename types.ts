@@ -6,7 +6,7 @@ export interface TravelFormData {
   startDate: string;
   duration: string;
   budgetRange: string;
-  travelStyle: string; // Changed from union type to string to support flexible new categories
+  travelStyle: string[]; // Changed from string to string[] for multiple selection
   tripType: 'Couple/Honeymoon' | 'Family' | 'Group' | 'Solo' | '';
   groupSize: number;
   hasChildren: boolean;
