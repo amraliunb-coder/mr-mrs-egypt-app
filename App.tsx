@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { generateItineraryPreview } from './services/geminiService';
 import { TravelFormData, AppStatus, ItineraryResponse } from './types';
@@ -29,7 +30,7 @@ const INITIAL_DATA: TravelFormData = {
   startDate: '',
   duration: '7',
   budgetRange: '',
-  travelStyle: '',
+  travelStyle: [], // Changed to array
   tripType: '',
   groupSize: 2,
   hasChildren: false,
@@ -38,7 +39,7 @@ const INITIAL_DATA: TravelFormData = {
 
 // Wizard Background
 const WIZARD_BG = "https://images.unsplash.com/photo-1539650116455-251d93d5ce3d?q=80&w=2000&auto=format&fit=crop";
-// Updated Company Logo
+// Logo URL - Updated to the colored version
 const LOGO_URL = "https://res.cloudinary.com/drzid08rg/image/upload/colored-logo_tjemee.png";
 
 export default function App() {
@@ -104,15 +105,15 @@ export default function App() {
           return false;
         }
         return true;
-      case 6: // Budget
-        if (!formData.budgetRange) {
-          setError("Please select a budget range.");
+      case 6: // Style (Swapped)
+        if (formData.travelStyle.length === 0) {
+          setError("Please select at least one travel style.");
           return false;
         }
         return true;
-      case 7: // Style
-        if (!formData.travelStyle) {
-          setError("Please select a travel style.");
+      case 7: // Budget (Swapped)
+        if (!formData.budgetRange) {
+          setError("Please select a budget range.");
           return false;
         }
         return true;
@@ -300,7 +301,69 @@ export default function App() {
             {error && <p className="text-red-500 text-sm">{error}</p>}
           </div>
         );
-      case 6: // BUDGET STEP
+      case 6: // TRAVEL STYLE (Multiple Selection)
+        const toggleStyle = (val: string) => {
+          const currentStyles = formData.travelStyle;
+          let newStyles: string[];
+          if (currentStyles.includes(val)) {
+            newStyles = currentStyles.filter(style => style !== val);
+          } else {
+            newStyles = [...currentStyles, val];
+          }
+          handleChange('travelStyle', newStyles);
+        };
+
+        return (
+          <div className="space-y-6">
+            <h2 className="text-3xl font-serif text-[#2C3E50] mb-2">Travel Style</h2>
+            <p className="text-gray-600 font-sans font-light">How do you envision your days? (Select all that apply)</p>
+            <div className="flex flex-col gap-3">
+              {[
+                { 
+                  val: 'Historical Sites, Museums & Monuments', 
+                  label: 'Historical Sites & Monuments', 
+                  desc: 'Pyramids, Nile temples, museums, and iconic citadels.',
+                  icon: <Landmark size={20} />
+                },
+                { 
+                  val: 'Nature & Outdoors', 
+                  label: 'Nature & Outdoors', 
+                  desc: 'White Desert, Sinai canyons, and remote oases.',
+                  icon: <Mountain size={20} />
+                },
+                { 
+                  val: 'Active Vacation', 
+                  label: 'Active Vacation', 
+                  desc: 'Red Sea diving, camel trekking, and canyon hiking.',
+                  icon: <Compass size={20} />
+                },
+                { 
+                  val: 'Beaches, Relaxation & Sun', 
+                  label: 'Beaches, Relaxation & Sun', 
+                  desc: 'Red Sea beaches, natural springs, and relaxation.',
+                  icon: <Sun size={20} />
+                },
+                { 
+                  val: 'Experience Culture & Local Life', 
+                  label: 'Culture & Local Life', 
+                  desc: 'Bazaars, coffeehouses, and immersive village life.',
+                  icon: <Coffee size={20} />
+                },
+              ].map((opt) => (
+                <SelectCard
+                  key={opt.val}
+                  selected={formData.travelStyle.includes(opt.val)}
+                  onClick={() => toggleStyle(opt.val)}
+                  title={opt.label}
+                  description={opt.desc}
+                  icon={opt.icon}
+                />
+              ))}
+            </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+          </div>
+        );
+      case 7: // BUDGET STEP (Swapped)
         const days = parseInt(formData.duration) || 7;
         const fmt = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
         
@@ -366,57 +429,6 @@ export default function App() {
             {error && <p className="text-red-500 text-sm">{error}</p>}
           </div>
         );
-      case 7:
-        return (
-          <div className="space-y-6">
-            <h2 className="text-3xl font-serif text-[#2C3E50] mb-2">Travel Style</h2>
-            <p className="text-gray-600 font-sans font-light">How do you envision your days?</p>
-            <div className="flex flex-col gap-3">
-              {[
-                { 
-                  val: 'Historical Sites, Museums & Monuments', 
-                  label: 'Historical Sites & Monuments', 
-                  desc: 'Pyramids, Nile temples, museums, and iconic citadels.',
-                  icon: <Landmark size={20} />
-                },
-                { 
-                  val: 'Nature & Outdoors', 
-                  label: 'Nature & Outdoors', 
-                  desc: 'White Desert, Sinai canyons, and remote oases.',
-                  icon: <Mountain size={20} />
-                },
-                { 
-                  val: 'Active Vacation', 
-                  label: 'Active Vacation', 
-                  desc: 'Red Sea diving, camel trekking, and canyon hiking.',
-                  icon: <Compass size={20} />
-                },
-                { 
-                  val: 'Beaches, Relaxation & Sun', 
-                  label: 'Beaches, Relaxation & Sun', 
-                  desc: 'Red Sea beaches, natural springs, and relaxation.',
-                  icon: <Sun size={20} />
-                },
-                { 
-                  val: 'Experience Culture & Local Life', 
-                  label: 'Culture & Local Life', 
-                  desc: 'Bazaars, coffeehouses, and immersive village life.',
-                  icon: <Coffee size={20} />
-                },
-              ].map((opt) => (
-                <SelectCard
-                  key={opt.val}
-                  selected={formData.travelStyle === opt.val}
-                  onClick={() => handleChange('travelStyle', opt.val)}
-                  title={opt.label}
-                  description={opt.desc}
-                  icon={opt.icon}
-                />
-              ))}
-            </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-          </div>
-        );
       case 8:
         return (
           <div className="space-y-6">
@@ -446,8 +458,7 @@ export default function App() {
   // If we have a generated itinerary, show the full view (overlaying everything)
   if (status === AppStatus.SUCCESS && itinerary) {
     return (
-      // Added min-h-screen and explicit background to prevent black gaps
-      <div className="bg-[#F9F9F7] min-h-screen w-full relative">
+      <div className="bg-[#F9F9F7] min-h-screen">
         <header className="fixed top-0 left-0 w-full z-50 p-6 flex justify-between items-center print:hidden bg-[#F9F9F7]/90 backdrop-blur-md shadow-sm">
            <img 
               src={LOGO_URL} 
@@ -456,7 +467,7 @@ export default function App() {
             />
         </header>
         {/* Increased padding-top to pt-48 to ensure content isn't hidden under header */}
-        <main className="pt-48 p-4 md:p-8 w-full">
+        <main className="pt-32 md:pt-48 p-4 md:p-8">
           <ItineraryDisplay 
             data={itinerary} 
             formData={formData} 
