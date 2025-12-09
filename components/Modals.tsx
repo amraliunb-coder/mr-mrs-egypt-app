@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { X, MessageCircle, Mail, Send, CheckCircle, Loader2, Smartphone, Monitor } from 'lucide-react';
 import { TravelFormData } from '../types';
@@ -300,6 +301,9 @@ export function QuoteModal({ isOpen, onClose, formData, onSubmit }: QuoteModalPr
     e.preventDefault();
     setStatus('sending');
 
+    // Join array for display
+    const stylesString = formData.travelStyle.join(', ');
+
     const subject = encodeURIComponent(`Booking Enquiry - ${formData.name} - ${formData.startDate}`);
     const body = encodeURIComponent(`
 Booking Enquiry
@@ -318,7 +322,7 @@ Duration: ${formData.duration} Days
 Travelers: ${formData.groupSize} (${formData.hasChildren ? 'With Children' : 'Adults Only'})
 Trip Type: ${formData.tripType}
 Budget: ${formData.budgetRange}
-Travel Style: ${formData.travelStyle}
+Travel Style: ${stylesString}
 
 CUSTOMIZATION REQUESTS / NOTES
 ------------------------------
@@ -390,7 +394,9 @@ ${formData.additionalNotes || 'None'}
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 mb-1">Travel Style</div>
-                  <div className="font-semibold text-[#2C3E50]">{formData.tripType}</div>
+                  <div className="font-semibold text-[#2C3E50] truncate" title={formData.travelStyle.join(', ')}>
+                    {formData.travelStyle.length > 1 ? 'Multiple Selected' : formData.travelStyle[0]}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 mb-1">Budget</div>
