@@ -123,7 +123,16 @@ Return a strict JSON object matching the schema.`;
     return JSON.parse(text) as ItineraryResponse;
 
   } catch (error: any) {
-    console.error('Error generating itinerary:', error?.message || error);
-    throw new Error(`Failed to generate itinerary: ${error?.message || 'Unknown error'}`);
+    const msg = error?.message || String(error);
+
+    /* ---------- 429 / quota exhausted ---------- */
+    if (msg.includes('429') || msg.includes('quota') || msg.includes('Quota exceeded')) {
+      throw new Error(
+        'Daily free quota used up. The demo resets at midnight UTC, or add billing for uninterrupted service.'
+      );
+    }
+
+    /* ---------- every other error ---------- */
+    console.error('Gemini error:', msg);
+    throw new Error(`Failed to generate itinerary: ${msg}`);
   }
-};
