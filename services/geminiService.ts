@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/generative-ai";
 import { TravelFormData, ItineraryResponse } from "../types";
 
 // Ensure process.env is accessible for the API key replacement defined in vite.config.ts
