@@ -86,7 +86,7 @@ Return a strict JSON object matching the schema.`;
     const msg = error?.message || String(error);
 
     if (msg.includes("429") || msg.includes("quota") || msg.includes("Quota exceeded")) {
-      throw new Error("Daily free quota used up. The demo resets at midnight UTC, or add billing for uninterrupted service.");
+      throw new Error("Daily free quota reached. Your quota resets at 2 AM Cairo time (midnight UTC). To remove this limit, enable billing in Google AI Studio at aistudio.google.com");
     }
 
     console.error("Gemini error:", msg);
