@@ -1,15 +1,14 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { TravelFormData, ItineraryResponse } from '../types';
 
-import { GoogleGenAI, Type } from "@google/generative-ai";
-import { TravelFormData, ItineraryResponse } from "../types";
-
-// Ensure process.env is accessible for the API key replacement defined in vite.config.ts
+// Declare environment variable type
 declare const process: { env: { API_KEY: string } };
 
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
   
   // Initialize Client
-  // The API key must be obtained exclusively from the environment variable process.env.API_KEY
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const genAI = new GoogleGenerativeAI(process.env.VITE_GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
   
   // 3. Define Schema
   const responseSchema = {
