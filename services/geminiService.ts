@@ -131,6 +131,11 @@ Return a strict JSON object matching the schema.`;
         'Daily free quota used up. The demo resets at midnight UTC, or add billing for uninterrupted service.'
       );
     }
+       /* ---------- every other error ---------- */
+    console.error('Gemini error:', msg);
+    throw new Error(`Failed to generate itinerary: ${msg}`);
+  }          // ← closes catch
+}            // ← closes function
 
     /* ---------- every other error ---------- */
     console.error('Gemini error:', msg);
