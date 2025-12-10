@@ -1,39 +1,20 @@
+// services/geminiService.ts
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { TravelFormData, ItineraryResponse } from '../types';
 
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
-  
   const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-  
+
   const responseSchema = {
     type: "object",
     properties: {
-      tripTitle: { 
-        type: "string",
-        description: "A creative title for the trip"
-      },
-      greeting: { 
-        type: "string",
-        description: "A personalized opening paragraph"
-      },
-      summary: { 
-        type: "string",
-        description: "A 2-3 sentence overview of the trip"
-      },
-      totalEstimatedCost: { 
-        type: "string",
-        description: "Estimated cost range in USD per person"
-      },
-      priceIncludes: { 
-        type: "array", 
-        items: { type: "string" },
-        description: "List of key inclusions"
-      },
-      highlights: { 
-        type: "array",
-        items: { type: "string" }
-      },
+      tripTitle: { type: "string", description: "A creative title for the trip" },
+      greeting: { type: "string", description: "A personalized opening paragraph" },
+      summary: { type: "string", description: "A 2-3 sentence overview of the trip" },
+      totalEstimatedCost: { type: "string", description: "Estimated cost range in USD per person" },
+      priceIncludes: { type: "array", items: { type: "string" }, description: "List of key inclusions" },
+      highlights: { type: "array", items: { type: "string" } },
       days: {
         type: "array",
         items: {
@@ -41,14 +22,8 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
           properties: {
             day: { type: "integer" },
             title: { type: "string" },
-            activities: { 
-              type: "array", 
-              items: { type: "string" }
-            },
-            notes: { 
-              type: "string",
-              description: "Evening recommendation or dining tip"
-            }
+            activities: { type: "array", items: { type: "string" } },
+            notes: { type: "string", description: "Evening recommendation or dining tip" }
           },
           required: ["day", "title", "activities"]
         }
@@ -59,22 +34,13 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
           type: "object",
           properties: {
             name: { type: "string" },
-            type: { 
-              type: "string",
-              description: "Hotel type"
-            },
-            description: { 
-              type: "string",
-              description: "Hotel description"
-            }
+            type: { type: "string", description: "Hotel type" },
+            description: { type: "string", description: "Hotel description" }
           },
           required: ["name", "type", "description"]
         }
       },
-      travelTips: { 
-        type: "array", 
-        items: { type: "string" }
-      }
+      travelTips: { type: "array", items: { type: "string" } }
     },
     required: ["tripTitle", "greeting", "summary", "totalEstimatedCost", "priceIncludes", "highlights", "days", "accommodationOptions", "travelTips"]
   };
@@ -113,31 +79,17 @@ Return a strict JSON object matching the schema.`;
       }
     });
 
-    const response = await result.response;
-    const text = response.text();
-    
-    if (!text) {
-      throw new Error("No response from AI");
-    }
-    
+    const text = (await result.response).text();
+    if (!text) throw new Error("No response from AI");
     return JSON.parse(text) as ItineraryResponse;
-
   } catch (error: any) {
     const msg = error?.message || String(error);
 
-    /* ---------- 429 / quota exhausted ---------- */
-    if (msg.includes('429') || msg.includes('quota') || msg.includes('Quota exceeded')) {
-      throw new Error(
-        'Daily free quota used up. The demo resets at midnight UTC, or add billing for uninterrupted service.'
-      );
+    if (msg.includes("429") || msg.includes("quota") || msg.includes("Quota exceeded")) {
+      throw new Error("Daily free quota used up. The demo resets at midnight UTC, or add billing for uninterrupted service.");
     }
-       /* ---------- every other error ---------- */
-    console.error('Gemini error:', msg);
-    throw new Error(`Failed to generate itinerary: ${msg}`);
-  }          // ← closes catch
-}            // ← closes function
 
-    /* ---------- every other error ---------- */
-    console.error('Gemini error:', msg);
+    console.error("Gemini error:", msg);
     throw new Error(`Failed to generate itinerary: ${msg}`);
   }
+};
