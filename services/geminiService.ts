@@ -3,9 +3,25 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { TravelFormData, ItineraryResponse } from '../types';
 
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
-  const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  
+  // 1. Get API Key from Environment Variables
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GOOGLE_API_KEY;
+  if (!apiKey || apiKey.includes("undefined") || apiKey.includes("PASTE_YOUR") || apiKey === "PLACEHOLDER_API_KEY") {
+    throw new Error("API Key is missing or invalid. Please set VITE_GEMINI_API_KEY or VITE_GOOGLE_API_KEY in your environment variables.");
+  }
 
+  // 2. Initialize Client
+  const genAI = new GoogleGenerativeAI(apiKey);
+  
+  // 3. List of models to try in order of preference
+  const modelsToTry = [
+    "gemini-2.0-flash-exp",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-pro"
+  ];
+
+  // 4. Define Response Schema
   const responseSchema = {
     type: "object",
     properties: {
@@ -45,6 +61,7 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
     required: ["tripTitle", "greeting", "summary", "totalEstimatedCost", "priceIncludes", "highlights", "days", "accommodationOptions", "travelTips"]
   };
 
+  // 5. Build Prompt
   const selectedStyles = Array.isArray(formData.travelStyle) ? formData.travelStyle.join(", ") : formData.travelStyle;
 
   const prompt = `You are a senior luxury travel consultant for Mr & Mrs Egypt. Create a complete detailed ${formData.duration}-day itinerary for a client.
@@ -70,26 +87,62 @@ REQUIREMENTS:
 
 Return a strict JSON object matching the schema.`;
 
-  try {
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema as any,
+  // 6. Try each model until one works
+  let lastError: any = null;
+
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`Attempting to use model: ${modelName}`);
+      
+      const model = genAI.getGenerativeModel({ model: modelName });
+      
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: responseSchema as any,
+        }
+      });
+
+      const text = (await result.response).text();
+      if (!text) {
+        throw new Error("No response from AI");
       }
-    });
 
-    const text = (await result.response).text();
-    if (!text) throw new Error("No response from AI");
-    return JSON.parse(text) as ItineraryResponse;
-  } catch (error: any) {
-    const msg = error?.message || String(error);
+      const parsedResponse = JSON.parse(text) as ItineraryResponse;
+      console.log(`Successfully generated itinerary using model: ${modelName}`);
+      return parsedResponse;
 
-    if (msg.includes("429") || msg.includes("quota") || msg.includes("Quota exceeded")) {
-      throw new Error("Daily free quota reached. Your quota resets at 10 AM Cairo time (midnight Pacific). To remove this limit, enable billing in Google AI Studio at aistudio.google.com");
+    } catch (error: any) {
+      const msg = error?.message || String(error);
+      console.warn(`Model ${modelName} failed:`, msg);
+      lastError = error;
+
+      // Check if it's a quota error
+      if (msg.includes("429") || msg.includes("quota") || msg.includes("Quota exceeded")) {
+        // Continue to try next model instead of throwing immediately
+        console.log(`Quota exceeded for ${modelName}, trying next model...`);
+        continue;
+      }
+
+      // For other errors, also try next model
+      console.log(`Error with ${modelName}, trying next model...`);
+      continue;
     }
-
-    console.error("Gemini error:", msg);
-    throw new Error(`Failed to generate itinerary: ${msg}`);
   }
+
+  // 7. If all models failed, throw comprehensive error
+  const lastErrorMsg = lastError?.message || String(lastError);
+  
+  if (lastErrorMsg.includes("429") || lastErrorMsg.includes("quota") || lastErrorMsg.includes("Quota exceeded")) {
+    throw new Error(
+      "Daily free quota reached for all available models. Your quota resets at 10 AM Cairo time (midnight Pacific). " +
+      "To remove this limit permanently, enable billing in Google AI Studio at aistudio.google.com"
+    );
+  }
+
+  throw new Error(
+    `Failed to generate itinerary with all available models. Last error: ${lastErrorMsg}. ` +
+    `Please check your API key or try again later.`
+  );
 };
