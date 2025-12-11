@@ -13,12 +13,13 @@ export const generateItineraryPreview = async (formData: TravelFormData): Promis
   // 2. Initialize Client
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // 3. List of models to try in order of preference
+  // 3. List of models to try in order of preference (CORRECTED MODEL NAMES)
   const modelsToTry = [
-    "gemini-2.0-flash-exp",
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-pro"
+    "gemini-2.5-flash",           // Latest and fastest
+    "gemini-2.0-flash-exp",       // Experimental 2.0
+    "gemini-2.0-flash",           // Stable 2.0
+    "gemini-1.5-flash",           // Stable 1.5 flash
+    "gemini-1.5-pro-latest"       // Latest 1.5 pro
   ];
 
   // 4. Define Response Schema
@@ -110,23 +111,28 @@ Return a strict JSON object matching the schema.`;
       }
 
       const parsedResponse = JSON.parse(text) as ItineraryResponse;
-      console.log(`Successfully generated itinerary using model: ${modelName}`);
+      console.log(`✅ Successfully generated itinerary using model: ${modelName}`);
       return parsedResponse;
 
     } catch (error: any) {
       const msg = error?.message || String(error);
-      console.warn(`Model ${modelName} failed:`, msg);
+      console.warn(`❌ Model ${modelName} failed:`, msg);
       lastError = error;
 
       // Check if it's a quota error
       if (msg.includes("429") || msg.includes("quota") || msg.includes("Quota exceeded")) {
-        // Continue to try next model instead of throwing immediately
-        console.log(`Quota exceeded for ${modelName}, trying next model...`);
+        console.log(`⏭️  Quota exceeded for ${modelName}, trying next model...`);
+        continue;
+      }
+
+      // Check if it's a 404 model not found error
+      if (msg.includes("404") || msg.includes("not found")) {
+        console.log(`⏭️  Model ${modelName} not available, trying next model...`);
         continue;
       }
 
       // For other errors, also try next model
-      console.log(`Error with ${modelName}, trying next model...`);
+      console.log(`⏭️  Error with ${modelName}, trying next model...`);
       continue;
     }
   }
@@ -136,13 +142,21 @@ Return a strict JSON object matching the schema.`;
   
   if (lastErrorMsg.includes("429") || lastErrorMsg.includes("quota") || lastErrorMsg.includes("Quota exceeded")) {
     throw new Error(
-      "Daily free quota reached for all available models. Your quota resets at 10 AM Cairo time (midnight Pacific). " +
-      "To remove this limit permanently, enable billing in Google AI Studio at aistudio.google.com"
+      "❌ Daily free quota reached for all available models. Your quota resets at 10 AM Cairo time (midnight Pacific). " +
+      "To remove this limit permanently, enable billing in Google AI Studio at https://aistudio.google.com"
+    );
+  }
+
+  if (lastErrorMsg.includes("404") || lastErrorMsg.includes("not found")) {
+    throw new Error(
+      "❌ None of the Gemini models are accessible with your API key. " +
+      "Please verify your API key is correct and has access to Gemini models. " +
+      "Get a new API key from https://aistudio.google.com"
     );
   }
 
   throw new Error(
-    `Failed to generate itinerary with all available models. Last error: ${lastErrorMsg}. ` +
-    `Please check your API key or try again later.`
+    `❌ Failed to generate itinerary with all available models. Last error: ${lastErrorMsg}. ` +
+    `Please check your API key at https://aistudio.google.com or try again later.`
   );
 };
