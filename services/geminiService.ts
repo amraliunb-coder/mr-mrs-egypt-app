@@ -4,7 +4,7 @@ import { TravelFormData, ItineraryResponse } from '../types';
 
 export const generateItineraryPreview = async (formData: TravelFormData): Promise<ItineraryResponse> => {
   const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const responseSchema = {
     type: "object",
@@ -86,7 +86,7 @@ Return a strict JSON object matching the schema.`;
     const msg = error?.message || String(error);
 
     if (msg.includes("429") || msg.includes("quota") || msg.includes("Quota exceeded")) {
-      throw new Error("Daily free quota reached. Your quota resets at 2 AM Cairo time (midnight UTC). To remove this limit, enable billing in Google AI Studio at aistudio.google.com");
+      throw new Error("Daily free quota reached. Your quota resets at 10 AM Cairo time (midnight Pacific). To remove this limit, enable billing in Google AI Studio at aistudio.google.com");
     }
 
     console.error("Gemini error:", msg);
